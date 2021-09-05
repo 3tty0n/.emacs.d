@@ -35,6 +35,9 @@ emojis/
 request/
 .circe/
 
+# flycheck
+flycheck_*
+
 # lsp
 .lsp-session*
 
