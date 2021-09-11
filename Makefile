@@ -1,6 +1,6 @@
 EMACS := emacs
 USER_EMACS_DIR := ~/.emacs.d
-BATCHFLAG := -L site-lisp/ -L elpa/ -L straight/repo/ -batch -f batch-byte-compile
+LDFLAGS := -L site-lisp/ -L elpa/
 
 ELISPS :=  init.el my-init.el
 ELCS := $(ELISPS:.el=.elc)
@@ -12,10 +12,10 @@ $(SUBDIRS):
 	$(MAKE) -C $@
 
 %.elc: %.el
-	$(EMACS) $(BATCHFLAG) $<
+	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
 
 clean:
-	$(RM) $(ELCS)
+	$(RM) $(ELCS) session.*
 	$(MAKE) -C $(SUBDIRS) clean
 
 .PHONY: all clean $(SUBDIRS)
