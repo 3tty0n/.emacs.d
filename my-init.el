@@ -564,19 +564,18 @@
 ;; lsp
 (use-package lsp-mode
   :ensure t
-  :pin melpa-stable
-  :hook ((c-mode      . lsp)
-         (c++-mode    . lsp)
-         (LaTeX-mode  . lsp)
-         (tuareg-mode . lsp)
-         (scala-mode  . lsp)
-         (java-mode   . lsp)
-         (python-mode . lsp)
-         (scala-mode  . lsp)
-         (haskell-mode . lsp)
-         (lsp-mode    . lsp-enable-which-key-integration)
-         (lsp-mode    . lsp-lens-mode))
-  :commands (lsp)
+  :hook ((c-mode        . lsp-deferred)
+         (c++-mode      . lsp-deferred)
+         (tuareg-mode   . lsp-deferred)
+         (scala-mode    . lsp-deferred)
+         (java-mode     . lsp-deferred)
+         ;; (LaTeX-mode    . lsp-deferred)
+         (python-mode   . lsp-deferred)
+         (scala-mode    . lsp-deferred)
+         (haskell-mode  . lsp-deferred)
+         (lsp-mode      . lsp-enable-which-key-integration)
+         (lsp-mode      . lsp-lens-mode))
+  :commands (lsp lsp-deferred)
   :config
   ;; for better performance
   (setq read-process-output-max (* 4 1024 1024)) ;; 4mb
@@ -584,8 +583,11 @@
   (setq lsp-headerline-breadcrumb-enable nil)
   ;; disable flymake
   (setq lsp-prefer-flymake nil)
-  (setq lsp-response-timeout 0.5)
-  (setq lsp-idle-delay 0.5)
+  (setq lsp-prefer-capf t)
+  (setq lsp-response-timeout 5)
+  (setq lsp-idle-delay 1)
+  (setq lsp-keep-workspace-alive nil)
+  (advice-add #'lsp--auto-configure :override #'ignore)
 
   ;; metals (for scala)
   (use-package lsp-metals :ensure t :after lsp)
@@ -594,6 +596,8 @@
   (use-package lsp-latex
     :ensure t
     :config
+    (setq lsp-latex-forward-search-executable "evince-synctex")
+    (setq lsp-latex-forward-search-args '("-f" "%l" "%p" "\"emacsclient +%l %f\""))
     ;; (setq lsp-tex-server 'digestif)
     :after lsp)
 
@@ -1173,6 +1177,7 @@
   (add-hook 'LaTeX-mode-hook (lambda ()
                                (display-fill-column-indicator-mode 1)))
   :config
+  (require 'tex-site)
   (setq TeX-parse-self t)
   (setq TeX-auto-save t)
   (setq TeX-clean-confirm t)
@@ -1215,27 +1220,27 @@
 
   ;; Update PDF buffers after successful LaTeX runs
   (add-hook 'TeX-after-compilation-finished-functions
-            #'TeX-revert-document-buffer))
+            #'TeX-revert-document-buffer)
 
-(use-package auctex-latexmk
-  :ensure t
-  :config
-  (auctex-latexmk-setup)
-  (setq shell-escape-mode t))
+  (use-package auctex-latexmk
+    :ensure t
+    :config
+    (auctex-latexmk-setup)
+    (setq shell-escape-mode t))
 
-(use-package company-auctex
-  :ensure t
-  :after (LaTeX-mode)
-  :init
-  (company-auctex-init))
+  (use-package company-auctex
+    :ensure t
+    :init
+    (company-auctex-init))
 
-(use-package reftex
-  :ensure t
-  :config
-  (setq reftex-section-levels
-        (append '(("frametitle" . -3) ) reftex-section-levels))
-  (setq reftex-cite-prompt-optional-args t)
-  (setq reftex-plug-into-AUCTeX t))
+  (use-package reftex
+    :ensure t
+    :config
+    (setq reftex-section-levels
+          (append '(("frametitle" . -3) ) reftex-section-levels))
+    (setq reftex-cite-prompt-optional-args t)
+    (setq reftex-plug-into-AUCTeX t)))
+
 
 ;; c/c++
 (use-package irony

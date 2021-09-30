@@ -38,7 +38,7 @@
   (interactive "Alpha: ")
   (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
-;; (set-alpha 95)
+(set-alpha 95)
 
 ;; window size
 (defun set-frame-size-according-to-resolution ()
@@ -99,6 +99,47 @@ walk backward/forward early commands history."
 (global-set-key "\C-x#" '(lambda ()
                            (interactive)
                            (split-window-horizontally-n 3)))
+
+(defun compact-uncompact-block ()
+  "Remove or add line ending chars on current paragraph.
+This command is similar to a toggle of `fill-paragraph'.
+When there is a text selection, act on the region."
+  (interactive)
+
+  ;; This command symbol has a property “'stateIsCompact-p”.
+  (let (currentStateIsCompact (bigFillColumnVal 4333999) (deactivate-mark nil))
+
+    (save-excursion
+      ;; Determine whether the text is currently compact.
+      (setq currentStateIsCompact
+            (if (eq last-command this-command)
+                (get this-command 'stateIsCompact-p)
+              (if (> (- (line-end-position) (line-beginning-position)) fill-column) t nil) ) )
+
+      (if (region-active-p)
+          (if currentStateIsCompact
+              (fill-region (region-beginning) (region-end))
+            (let ((fill-column bigFillColumnVal))
+              (fill-region (region-beginning) (region-end))) )
+        (if currentStateIsCompact
+            (fill-paragraph nil)
+          (let ((fill-column bigFillColumnVal))
+            (fill-paragraph nil)) ) )
+
+      (put this-command 'stateIsCompact-p (if currentStateIsCompact nil t)) ) ) )
+
+(defun my-copy-region (beg end)
+  "Save the current region to the kill ring after stripping extra whitespace and new lines"
+  (interactive "r")
+  (copy-region-as-kill beg end)
+  (with-temp-buffer
+    (yank)
+    (goto-char 0)
+    (while (looking-at "[ \t\n]")
+      (delete-char 1))
+    (compact-uncompact-block)
+    (mark-whole-buffer)
+    (kill-region (point-min) (point-max))))
 
 (provide 'my-util)
 ;;;  my-util.el ends here

@@ -1,6 +1,7 @@
 EMACS := emacs
 USER_EMACS_DIR := ~/.emacs.d
-BATCHFLAG := -L $(USER_EMACS_DIR)/site-lisp -L $(USER_EMACS_DIR)/elpa -batch -f batch-byte-compile
+LDFLAGS := -L site-lisp/ -L elpa/
+BATCHFLAG := -L $(USER_EMACS_DIR)/site-lisp -L $(USER_EMACS_DIR)/elpa
 
 ELISPS := $(shell find . -maxdepth 1 -name "*.el" -type f)
 ELCS := $(ELISPS:.el=.elc)
@@ -12,7 +13,7 @@ all: compile
 compile: $(ELCS)
 
 %.elc: %.el
-	$(EMACS) $(BATCHFLAG) $<
+	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
 
 .PHONY: clean
 clean:
