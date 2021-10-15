@@ -457,14 +457,19 @@
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  ;; :if (display-graphic-p)
+  :if (display-graphic-p)
   :config
   (load-theme 'doom-city-lights t)
-  ;; (load-theme 'doom-tomorrow-night t)
   (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
   (doom-themes-org-config))
+
+(use-package srcery-theme
+  :ensure t
+  :if (not (display-graphic-p))
+  :config
+  (load-theme 'srcery t))
 
 (use-package jetbrains-darcula-theme
   :disabled
