@@ -46,6 +46,7 @@
 (use-package restart-emacs :ensure t)
 
 (use-package esup
+  :disabled
   :ensure t
   ;; To use MELPA Stable use ":pin mepla-stable",
   :pin melpa
@@ -79,7 +80,7 @@
 ;; no backup
 (setq make-backup-files nil)
 (setq auto-save-default nil)
-;; (setq backup-directory-alist '(("" . "~/.emacs.d/.backup")))
+(setq-default backup-directory-alist '(("" . "~/.emacs.d/.backup")))
 
 ;; tab -> space
 (setq-default indent-tabs-mode nil)
@@ -110,15 +111,12 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 90)
+(setq-default fill-column 95)
 
 (global-visual-line-mode)
 
 ;; add key-bining for recompilation
 (global-set-key (kbd "M-c") 'recompile)
-
-;; browsing the kill ring
-(global-set-key (kbd "C-c y") '(lambda () (interactive) (popup-menu 'yank-menu)))
 
 ;; editting rectangle region
 (cua-mode t)
@@ -191,8 +189,8 @@
   :bind
   ("C-t". shell-pop)
   :custom
-  (shell-pop-internal-mode "eshell")
-  (shell-pop-shell-type (quote ("eshell" "*eshell*" (lambda nil (eshell shell-pop-term-shell)))))
+  (shell-pop-internal-mode "vterm")
+  (shell-pop-shell-type (quote ("vterm" "*vterm*" (lambda nil (vterm shell-pop-term-shell)))))
   (shell-pop-term-shell "/usr/bin/zsh")
   (shell-pop-window-size 30)
   (shell-pop-full-span t)
@@ -266,7 +264,7 @@
 
 (setq inhibit-startup-message t) ; 起動メッセージを非表示
 (tool-bar-mode -1) ; ツールバーを非表示
-(menu-bar-mode -1) ; メニューバーを非表示
+;; (menu-bar-mode -1) ; メニューバーを非表示
 
 ;; set C-h to backspace
 (global-set-key (kbd "C-h") 'backward-char)
@@ -402,7 +400,6 @@
   (global-set-key (kbd "C-x j") 'skk-auto-fill-mode)
   :config
   (use-package viper :init (setq viper-mode -1))
-  ;; (use-package skk-bayesian :load-path "site-lisp/skk-bayesian")
 
   ;; (setq skk-kutouten-type 'en)
 
@@ -420,7 +417,7 @@
   (setq skk-egg-like-newline t)
   (setq skk-comp-circulate t)
 
-  ;; (setq skk-egg-like-newline t)                     ; Enterで改行しない
+  (setq skk-egg-like-newline t)                     ; Enterで改行しない
   (setq skk-delete-implies-kakutei nil)             ; ▼モードで一つ前の候補を表示
   (setq skk-show-annotation nil)                    ; Annotation
   (setq skk-use-look t)                             ; 英語補完
@@ -449,6 +446,7 @@
 
 ;; color theme
 (use-package spacemacs-common
+  :disabled
   :ensure spacemacs-theme
   :if (not (display-graphic-p))
   :config
@@ -459,9 +457,10 @@
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  :if (display-graphic-p)
+  ;; :if (display-graphic-p)
   :config
   (load-theme 'doom-city-lights t)
+  ;; (load-theme 'doom-tomorrow-night t)
   (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
@@ -480,16 +479,9 @@
 ;; mode-line
 (use-package powerline
   :ensure t
-  :disabled
   :config
   (powerline-default-theme))
 
-(use-package spaceline
-  :ensure t
-  :disabled
-  :config
-  (use-package spaceline-all-the-icons :ensure t)
-  (spaceline-spacemacs-theme))
 
 (use-package doom-modeline
   :ensure t
@@ -529,18 +521,26 @@
   (define-key company-search-map (kbd "C-n") 'company-select-next)
   (define-key company-search-map (kbd "C-p") 'company-select-previous)
   (define-key company-active-map (kbd "C-s") 'company-filter-candidates)
-  (define-key company-active-map (kbd "TAB") 'company-complete-selection)
+  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+  (push 'company-preview-common-frontend company-frontends)
 
-  (use-package company-tabnine
-    :disabled
-    :ensure t
-    :config
-    (add-to-list 'company-backends #'company-tabnine))
+  (setq company-require-match 'never)
+  (setq company-idle-delay 0
+        company-minimum-prefix-length 2
+        company-selection-wrap-around t
+        company-tooltip-align-annotations t))
 
-  ;; (setq company-show-numbers t)
-  (setq company-minimum-prefix-length 1)
-  (setq company-selection-wrap-around t)
-  (setq company-idle-delay 0))
+(use-package company-statistics
+  :ensure t
+  :after (company)
+  :config
+  (setq company-statistics-file my-company-history-file
+      company-transformers
+      '(company-sort-by-statistics company-sort-by-backend-importance)))
+
+(use-package company-dwim
+  :load-path "site-lisp/company-dwim"
+  :after (company))
 
 (use-package company-flx
   :ensure t
@@ -564,26 +564,31 @@
 ;; lsp
 (use-package lsp-mode
   :ensure t
-  :hook ((c-mode        . lsp-deferred)
-         (c++-mode      . lsp-deferred)
-         (tuareg-mode   . lsp-deferred)
-         (scala-mode    . lsp-deferred)
-         (java-mode     . lsp-deferred)
-         ;; (LaTeX-mode    . lsp-deferred)
-         (python-mode   . lsp-deferred)
-         (scala-mode    . lsp-deferred)
-         (haskell-mode  . lsp-deferred)
+  :hook ((c-mode        . lsp)
+         (c++-mode      . lsp)
+         (tuareg-mode   . lsp)
+         (scala-mode    . lsp)
+         (java-mode     . lsp)
+         (LaTeX-mode    . lsp-deferred)
+         (python-mode   . lsp)
+         (scala-mode    . lsp)
+         (haskell-mode  . lsp)
          (lsp-mode      . lsp-enable-which-key-integration)
          (lsp-mode      . lsp-lens-mode))
   :commands (lsp lsp-deferred)
+  :init (lsp-headerline-breadcrumb-mode)
   :config
   ;; for better performance
   (setq read-process-output-max (* 4 1024 1024)) ;; 4mb
 
   (setq lsp-headerline-breadcrumb-enable nil)
   ;; disable flymake
-  (setq lsp-prefer-flymake nil)
-  (setq lsp-prefer-capf t)
+  ;; (setq lsp-prefer-flymake nil)
+
+  ;; completion
+  (setq lsp-completion-no-cache t)
+  (setq lsp-completion-provider :none)
+
   (setq lsp-response-timeout 5)
   (setq lsp-idle-delay 1)
   (setq lsp-keep-workspace-alive nil)
@@ -598,7 +603,7 @@
     :config
     (setq lsp-latex-forward-search-executable "evince-synctex")
     (setq lsp-latex-forward-search-args '("-f" "%l" "%p" "\"emacsclient +%l %f\""))
-    ;; (setq lsp-tex-server 'digestif)
+    (setq lsp-tex-server 'digestif)
     :after lsp)
 
   (use-package lsp-java :ensure t :after lsp
@@ -630,6 +635,8 @@
 ;; optionally
 (use-package lsp-ui
   :ensure t
+  :after lsp
+  :init (lsp-ui-mode)
   :commands lsp-ui-mode
   :hook
   (lsp-mode . lsp-ui-mode)
@@ -666,12 +673,19 @@
   (add-hook 'after-make-frame-functions-hook (lambda (frame) (set-frame-parameter frame 'tab-bar-lines 0))))
 
 (use-package lsp-treemacs
+  :after lsp
   :ensure t
   :commands lsp-treemacs-errors-list
   :config
   ;; for metals
   ;; (lsp-metals-treeview-enable t)
   (setq lsp-metals-treeview-show-when-views-received t))
+
+(use-package eglot
+  :disabled
+  :ensure t
+  :init
+  (add-hook 'LaTeX-mode-hook 'eglot-ensure))
 
 ;; find definitions
 (use-package smart-jump
@@ -680,6 +694,15 @@
   (smart-jump-setup-default-registers))
 
 ;; syntax check
+(use-package flymake
+  :config
+  (use-package flymake-diagnostic-at-point
+    :ensure t
+    :after flymake
+    :config
+    (add-hook 'flymake-mode-hook #'flymake-diagnostic-at-point-mode))
+  (use-package flymake-python-pyflakes :ensure t))
+
 (use-package flycheck
   :ensure t
   :init
@@ -694,7 +717,7 @@
     :init
     (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-  (setq flymake-mode -1)
+  ;; (setq flymake-mode -1)
   (if (display-graphic-p)
       (flycheck-pos-tip-mode)))
 
@@ -730,6 +753,7 @@
   ("M-i"     . helm-imenu)
   ("M-x"     . helm-M-x)
   ("M-y"     . helm-show-kill-ring)
+  ("C-c y"   . helm-show-kill-ring)
   :config
   (use-package helm-swoop
     :ensure t
@@ -1176,6 +1200,9 @@
                                (TeX-fold-mode 1)))
   (add-hook 'LaTeX-mode-hook (lambda ()
                                (display-fill-column-indicator-mode 1)))
+  (add-hook 'LaTeX-mode-hook (lambda ()
+                               (flycheck-mode -1)))
+  ;; (add-hook 'LaTeX-mode-hook (lambda () (company-mode -1)))
   :config
   (require 'tex-site)
   (setq TeX-parse-self t)
@@ -1229,6 +1256,7 @@
     (setq shell-escape-mode t))
 
   (use-package company-auctex
+    :disabled
     :ensure t
     :init
     (company-auctex-init))
