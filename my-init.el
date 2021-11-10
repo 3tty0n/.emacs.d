@@ -189,8 +189,8 @@
   :bind
   ("C-t". shell-pop)
   :custom
-  (shell-pop-internal-mode "vterm")
-  (shell-pop-shell-type (quote ("vterm" "*vterm*" (lambda nil (vterm shell-pop-term-shell)))))
+  (shell-pop-internal-mode "eshell")
+  (shell-pop-shell-type (quote ("eshell" "*eshell*" (lambda nil (eshell shell-pop-term-shell)))))
   (shell-pop-term-shell "/usr/bin/zsh")
   (shell-pop-window-size 30)
   (shell-pop-full-span t)
