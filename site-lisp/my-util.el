@@ -128,7 +128,7 @@ When there is a text selection, act on the region."
 
       (put this-command 'stateIsCompact-p (if currentStateIsCompact nil t)) ) ) )
 
-(defun my-copy-region (beg end)
+(defun my-copy-simple (beg end)
   "Save the current region to the kill ring after stripping extra whitespace and new lines"
   (interactive "r")
   (copy-region-as-kill beg end)

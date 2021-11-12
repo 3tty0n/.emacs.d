@@ -54,6 +54,7 @@
 
 ;; initial window
 (use-package dashboard
+  :disabled
   :ensure t
   :config
   (setq dashboard-items '((recents   . 10)
