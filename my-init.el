@@ -54,7 +54,6 @@
 
 ;; initial window
 (use-package dashboard
-  :disabled
   :ensure t
   :config
   (setq dashboard-items '((recents   . 10)
@@ -112,7 +111,7 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 95)
+(setq-default fill-column 90)
 
 (global-visual-line-mode)
 
@@ -235,7 +234,7 @@
   :init
   (smartparens-global-mode)
   :config
-  (sp-pair "'" "'" :actions nil)
+  ;; (sp-pair "'" "'" :actions nil)
   (sp-pair "`" "`" :actions nil))
 
 ;; scrolling
@@ -265,7 +264,7 @@
 
 (setq inhibit-startup-message t) ; 起動メッセージを非表示
 (tool-bar-mode -1) ; ツールバーを非表示
-;; (menu-bar-mode -1) ; メニューバーを非表示
+(menu-bar-mode -1) ; メニューバーを非表示
 
 ;; set C-h to backspace
 (global-set-key (kbd "C-h") 'backward-char)
@@ -402,7 +401,7 @@
   :config
   (use-package viper :init (setq viper-mode -1))
 
-  ;; (setq skk-kutouten-type 'en)
+  (setq skk-kutouten-type 'en)
 
   (setq skk-user-directory "~/.ddskk")
   (setq default-input-method "japanese-skk")
@@ -570,15 +569,15 @@
 ;; lsp
 (use-package lsp-mode
   :ensure t
-  :hook ((c-mode        . lsp)
-         (c++-mode      . lsp)
-         (tuareg-mode   . lsp)
-         (scala-mode    . lsp)
-         (java-mode     . lsp)
+  :hook ((c-mode        . lsp-deferred)
+         (c++-mode      . lsp-deferred)
+         (tuareg-mode   . lsp-deferred)
+         (scala-mode    . lsp-deferred)
+         (java-mode     . lsp-deferred)
          (LaTeX-mode    . lsp-deferred)
-         (python-mode   . lsp)
-         (scala-mode    . lsp)
-         (haskell-mode  . lsp)
+         (python-mode   . lsp-deferred)
+         (scala-mode    . lsp-deferred)
+         (haskell-mode  . lsp-deferred)
          (lsp-mode      . lsp-enable-which-key-integration)
          (lsp-mode      . lsp-lens-mode))
   :commands (lsp lsp-deferred)
@@ -598,7 +597,6 @@
   (setq lsp-response-timeout 5)
   (setq lsp-idle-delay 1)
   (setq lsp-keep-workspace-alive nil)
-  (advice-add #'lsp--auto-configure :override #'ignore)
 
   ;; metals (for scala)
   (use-package lsp-metals :ensure t :after lsp)
@@ -611,6 +609,11 @@
     (setq lsp-latex-forward-search-args '("-f" "%l" "%p" "\"emacsclient +%l %f\""))
     (setq lsp-tex-server 'digestif)
     :after lsp)
+
+  (use-package lsp-grammarly
+    :ensure t
+    :config
+    (use-package keytar :ensure t))
 
   (use-package lsp-java :ensure t :after lsp
     :config (add-hook 'java-mode-hook 'lsp))
@@ -746,6 +749,21 @@
 
 (use-package ag :ensure t)
 
+(use-package migemo
+  :load-path "site-lisp/migemo"
+  :init (migemo-init)
+  :config
+  ;; cmigemo(default)
+  (setq migemo-command "cmigemo")
+  (setq migemo-options '("-q" "--emacs"))
+
+  ;; Set your installed path
+  (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
+
+  (setq migemo-user-dictionary nil)
+  (setq migemo-regex-dictionary nil)
+  (setq migemo-coding-system 'utf-8-unix))
+
 ;; helm
 (use-package helm
   ;;:disabled
@@ -756,6 +774,7 @@
   ("C-x C-m" . helm-recentf)
   ("C-x b"   . helm-mini)
   ("C-s"     . helm-swoop)
+  ("C-c s"   . helm-occur)
   ("M-i"     . helm-imenu)
   ("M-x"     . helm-M-x)
   ("M-y"     . helm-show-kill-ring)
@@ -768,14 +787,17 @@
     ;;       ("C-r"     . helm-previous-line)
     ;;       ("C-s"     . helm-next-line))
     :config
+    ;; If you prefer fuzzy matching
+    ;; (setq helm-swoop-use-fuzzy-match t)
+
     ;; If this value is t, split window inside the current window
     (setq helm-swoop-split-with-multiple-windows t)
 
     ;; Split direcion. 'split-window-vertically or 'split-window-horizontally
-    (setq helm-swoop-split-direction 'split-window-vertically)
+    (setq helm-swoop-split-direction 'split-window-vertically))
 
-    ;; If you prefer fuzzy matching
-    (setq helm-swoop-use-fuzzy-match t))
+  ;; enable migemo
+  (helm-migemo-mode t)
 
   (use-package helm-ghq
     :ensure t
@@ -1156,8 +1178,7 @@
   (use-package merlin-company
     :ensure t
     :config
-    (add-to-list 'company-backends #'merlin-company-backend))
-  )
+    (add-to-list 'company-backends #'merlin-company-backend)))
 
 (use-package merlin-eldoc
   :ensure t
@@ -1169,9 +1190,12 @@
   (setq utop-command "opam config exec -- utop -emacs"))
 
 (use-package ocamlformat
-  :load-path "site-lisp/ocamlformat"
-  :bind (:map tuareg-mode-map
-              ("C-<tab>" . ocamlformat)))
+  :ensure t
+  :after (tuareg)
+  :custom (ocamlformat-enable 'enable-outside-detected-project)
+  ;; :hook (before-save . ocamlformat-before-save)
+  :config
+  (define-key tuareg-mode-map (kbd "C-M-<tab>") #'ocamlformat))
 
 ;; Proof General
 (use-package proof-general :ensure t)
@@ -1191,25 +1215,32 @@
   (setq mouse-wheel-follow-mouse t)
   (setq pdf-view-resize-factor 1.10))
 
+(use-package languagetool
+  :ensure t
+  :config
+  (global-set-key (kbd "C-c l c") 'languagetool-check)
+  (global-set-key (kbd "C-c l d") 'languagetool-clear-buffer)
+  (global-set-key (kbd "C-c l p") 'languagetool-correct-at-point)
+  (global-set-key (kbd "C-c l b") 'languagetool-correct-buffer)
+  (global-set-key (kbd "C-c l l") 'languagetool-set-language)
+
+  (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
+  (setq languagetool-language-tool-jar "~/.languagetool/LanguageTool-5.5/languagetool-commandline.jar")
+  (setq languagetool-server-language-tool-jar "~/.languagetool/LanguageTool-5.5/languagetool-server.jar"))
+
 (use-package tex
   :ensure auctex
   :defer t
   :mode ("\\.tex\\'" . LaTeX-mode)
   :init
-  (add-hook 'LaTeX-mode-hook 'visual-line-mode)
-  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+  :config
   (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
   (add-hook 'LaTeX-mode-hook 'turn-on-flyspell)
   (add-hook 'LaTeX-mode-hook 'turn-on-auto-fill)
-  (add-hook 'LaTeX-mode-hook 'outline-minor-mode)
-  (add-hook 'LaTeX-mode-hook (lambda ()
-                               (TeX-fold-mode 1)))
-  (add-hook 'LaTeX-mode-hook (lambda ()
-                               (display-fill-column-indicator-mode 1)))
-  (add-hook 'LaTeX-mode-hook (lambda ()
-                               (flycheck-mode -1)))
-  ;; (add-hook 'LaTeX-mode-hook (lambda () (company-mode -1)))
-  :config
+  (add-hook 'LaTeX-mode-hook 'visual-line-mode)
+  (add-hook 'LaTeX-mode-hook 'display-fill-column-indicator-mode)
+  (flycheck-mode -1)
+
   (require 'tex-site)
   (setq TeX-parse-self t)
   (setq TeX-auto-save t)
@@ -1480,13 +1511,6 @@
     :config
     :bind (:map org-agenda-mode-map
                 ("p" . org-pomodoro))))
-
-(use-package todoist
-  :ensure t
-  :defer t
-  :commands (todoist)
-  :config
-  (exec-path-from-shell-copy-env "TODOIST_TOKEN"))
 
 (use-package open-junk-file :ensure t)
 
