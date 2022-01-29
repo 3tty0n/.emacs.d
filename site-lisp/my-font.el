@@ -5,7 +5,7 @@
 
 (if (string-equal system-type "gnu/linux")
     (progn
-      (add-to-list 'default-frame-alist '(font . "Fira Code Medium-9"))
+      (add-to-list 'default-frame-alist '(font . "Fira Code Retina-9"))
       (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))))
 
 (provide 'my-font)

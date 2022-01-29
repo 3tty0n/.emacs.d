@@ -578,8 +578,7 @@
          (python-mode   . lsp-deferred)
          (scala-mode    . lsp-deferred)
          (haskell-mode  . lsp-deferred)
-         (lsp-mode      . lsp-enable-which-key-integration)
-         (lsp-mode      . lsp-lens-mode))
+         (lsp-mode      . lsp-enable-which-key-integration))
   :commands (lsp lsp-deferred)
   :init (lsp-headerline-breadcrumb-mode)
   :config
@@ -588,15 +587,17 @@
 
   (setq lsp-headerline-breadcrumb-enable nil)
   ;; disable flymake
-  ;; (setq lsp-prefer-flymake nil)
+  (setq lsp-prefer-flymake nil)
 
   ;; completion
-  (setq lsp-completion-no-cache t)
-  (setq lsp-completion-provider :none)
+  ;; (setq lsp-completion-no-cache t)
+  ;; (setq lsp-completion-provider :none)
 
   (setq lsp-response-timeout 5)
   (setq lsp-idle-delay 1)
   (setq lsp-keep-workspace-alive nil)
+
+  (setq lsp-lens-enable nil)
 
   ;; metals (for scala)
   (use-package lsp-metals :ensure t :after lsp)
@@ -609,11 +610,6 @@
     (setq lsp-latex-forward-search-args '("-f" "%l" "%p" "\"emacsclient +%l %f\""))
     (setq lsp-tex-server 'digestif)
     :after lsp)
-
-  (use-package lsp-grammarly
-    :ensure t
-    :config
-    (use-package keytar :ensure t))
 
   (use-package lsp-java :ensure t :after lsp
     :config (add-hook 'java-mode-hook 'lsp))
@@ -638,7 +634,7 @@
     ;; (setq lsp-python-ms-auto-install-server t)
     (setq lsp-python-ms-executable
           (executable-find
-           "~/src/github.com/Microsoft/python-language-server/output/bin/Release/linux-x64/publish/Microsoft.Python.LanguageServer"))
+           "~/src/github.com/microsoft/python-language-server/output/bin/Release/linux-x64/publish/Microsoft.Python.LanguageServer"))
     ))
 
 ;; optionally
@@ -654,7 +650,7 @@
   (lsp-ui-doc-enable t)
   (lsp-ui-doc-header t)
   (lsp-ui-doc-include-signature t)
-  (lsp-ui-doc-position 'at-point) ;; top, bottom, or at-point
+  (lsp-ui-doc-position 'bottom) ;; top, bottom, or at-point
   (lsp-ui-doc-max-width 180)
   (lsp-ui-doc-max-height 60)
   (lsp-ui-doc-use-childframe t)
@@ -673,6 +669,8 @@
   (lsp-ui-peek-peek-height 20)
   (lsp-ui-peek-list-width 50)
   (lsp-ui-peek-fontify 'on-demand) ;; never, on-demand, or always
+
+  (lsp-headerline-breadcrumb-enable nil)
   :bind
   ("C-c m" . lsp-ui-imenu)
   :config
