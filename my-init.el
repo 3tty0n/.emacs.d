@@ -111,7 +111,7 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 90)
+(setq-default fill-column 80)
 
 (global-visual-line-mode)
 
@@ -401,7 +401,7 @@
   :config
   (use-package viper :init (setq viper-mode -1))
 
-  (setq skk-kutouten-type 'en)
+  ;; (setq skk-kutouten-type 'en)
 
   (setq skk-user-directory "~/.ddskk")
   (setq default-input-method "japanese-skk")
@@ -446,7 +446,7 @@
 
 ;; color theme
 (use-package spacemacs-common
-  :disabled
+  ;; :disabled
   :ensure spacemacs-theme
   :if (not (display-graphic-p))
   :config
@@ -466,6 +466,7 @@
   (doom-themes-org-config))
 
 (use-package srcery-theme
+  :disabled
   :ensure t
   :if (not (display-graphic-p))
   :config
@@ -569,15 +570,16 @@
 ;; lsp
 (use-package lsp-mode
   :ensure t
-  :hook ((c-mode        . lsp-deferred)
-         (c++-mode      . lsp-deferred)
-         (tuareg-mode   . lsp-deferred)
-         (scala-mode    . lsp-deferred)
-         (java-mode     . lsp-deferred)
-         (LaTeX-mode    . lsp-deferred)
-         (python-mode   . lsp-deferred)
-         (scala-mode    . lsp-deferred)
-         (haskell-mode  . lsp-deferred)
+  :hook ((c-mode        . lsp)
+         (c++-mode      . lsp)
+         (tuareg-mode   . lsp)
+         (scala-mode    . lsp)
+         (java-mode     . lsp)
+         (LaTeX-mode    . lsp)
+         (python-mode   . lsp)
+         (ruby-mode     . lsp)
+         (scala-mode    . lsp)
+         (haskell-mode  . lsp)
          (lsp-mode      . lsp-enable-which-key-integration))
   :commands (lsp lsp-deferred)
   :init (lsp-headerline-breadcrumb-mode)
@@ -627,9 +629,6 @@
 
   (use-package lsp-python-ms
     :ensure t
-    :hook (python-mode . (lambda ()
-                           (require 'lsp-python-ms)
-                           (lsp)))
     :config
     ;; (setq lsp-python-ms-auto-install-server t)
     (setq lsp-python-ms-executable
@@ -650,7 +649,7 @@
   (lsp-ui-doc-enable t)
   (lsp-ui-doc-header t)
   (lsp-ui-doc-include-signature t)
-  (lsp-ui-doc-position 'bottom) ;; top, bottom, or at-point
+  (lsp-ui-doc-position 'top) ;; top, bottom, or at-point
   (lsp-ui-doc-max-width 180)
   (lsp-ui-doc-max-height 60)
   (lsp-ui-doc-use-childframe t)
@@ -1222,9 +1221,9 @@
   (global-set-key (kbd "C-c l b") 'languagetool-correct-buffer)
   (global-set-key (kbd "C-c l l") 'languagetool-set-language)
 
-  (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
-  (setq languagetool-language-tool-jar "~/.languagetool/LanguageTool-5.5/languagetool-commandline.jar")
-  (setq languagetool-server-language-tool-jar "~/.languagetool/LanguageTool-5.5/languagetool-server.jar"))
+  (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
+        languagetool-console-command "~/.languagetool/languagetool-commandline.jar"
+        languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
 (use-package tex
   :ensure auctex
@@ -1431,7 +1430,8 @@
   (setq org-todo-keywords
         '((sequence "TODO" "DOING" "|" "DONE")))
   (setq org-agenda-files '("~/Dropbox/org/research.org"
-                           "~/Dropbox/org/todo.org"))
+                           "~/Dropbox/org/todo.org"
+                           "~/Dropbox/org/notes.org"))
 
   (setq org-capture-templates
         '(("t" "Todo" entry (file"~/Dropbox/org/todo.org")
@@ -1442,8 +1442,9 @@
            "* %?\n   %a\n    %T")
           ))
 
-  (require 'ox-latex)
-  (add-to-list 'org-latex-classes
+  (use-package ox-latex
+    :config
+    (add-to-list 'org-latex-classes
                  '("ltjsarticle"
                    "\\documentclass[11pt,a4paper]{ltjsarticle}
 [NO-DEFAULT-PACKAGES]
@@ -1456,31 +1457,37 @@
 \\usepackage{wrapfig}
 \\usepackage{hyperref}
 \\hypersetup{pdfencoding=auto}"
-  ("\\section{%s}" . "\\section*{%s}")
-  ("\\subsection{%s}" . "\\subsection*{%s}")
-  ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-  ("\\paragraph{%s}" . "\\paragraph*{%s}")
-  ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
 
-  (add-to-list 'org-latex-classes
-               '("beamer"
-                 "\\documentclass\[presentation\]\{beamer\}"
-                 ("\\section\{%s\}" . "\\section*\{%s\}")
-                 ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
-                 ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}")))
+    (add-to-list 'org-latex-classes
+                 '("beamer"
+                   "\\documentclass\[presentation\]\{beamer\}"
+                   ("\\section\{%s\}" . "\\section*\{%s\}")
+                   ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
+                   ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 
   (setq org-latex-pdf-process '("lualatex --shell-escape --draftmode %f"
                                 "lualatex --shell-escape %f"))
   (setq org-latex-default-class "ltjsarticle")
 
+  (use-package org-appear
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook 'org-appear-mode))
+
   (use-package org-bullets
     :ensure t
+    :disabled
     :config
     (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
   (use-package org-superstar
     :ensure t
-    :disabled
+    ;; :disabled
     :init
     (add-hook 'org-mode-hook (lambda () (org-superstar-mode 1)))
     :config
