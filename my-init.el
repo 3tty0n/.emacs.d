@@ -536,8 +536,21 @@
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
 
+(use-package company-flx
+  :ensure t)
+
+(use-package company-fuzzy
+  :ensure t
+  :hook (company-mode . company-fuzzy-mode)
+  :init
+  (setq company-fuzzy-sorting-backend 'flx
+        company-fuzzy-prefix-on-top nil
+        company-fuzzy-history-backends '(company-yasnippet)
+        company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@")))
+
 (use-package company-statistics
   :ensure t
+  :hook (company-mode . company-statistics-mode)
   :after (company)
   :config
   (setq company-statistics-file my-company-history-file
@@ -548,10 +561,8 @@
   :load-path "site-lisp/company-dwim"
   :after (company))
 
-(use-package company-flx
-  :ensure t
-  :disabled
-  :init (company-flx-mode +1)
+(use-package company-anywhere
+  :load-path "site-lisp/company-anywhere"
   :after (company))
 
 (use-package company-quickhelp
@@ -592,8 +603,8 @@
   (setq lsp-prefer-flymake nil)
 
   ;; completion
-  ;; (setq lsp-completion-no-cache t)
-  ;; (setq lsp-completion-provider :none)
+  (setq lsp-completion-no-cache t)
+  (setq lsp-completion-provider :none)
 
   (setq lsp-response-timeout 5)
   (setq lsp-idle-delay 1)
@@ -1404,6 +1415,16 @@
 (use-package pypytrace-mode
   :defer t
   :mode "\\.log\\.txt$")
+
+(use-package jedi
+  :disabled
+  :ensure t
+  :config
+  (add-hook 'python-mode-hook 'jedi:setup)
+  (setq jedi:complete-on-dot t)
+
+  (define-key ac-mode-map (kbd "C-n") 'ac-next)
+  (define-key ac-mode-map (kbd "C-p") 'ac-previous))
 
 ;; html
 (use-package htmlize :ensure t)
