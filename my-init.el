@@ -286,7 +286,7 @@
 ;; undo tree
 (use-package undo-tree
   :ensure t
-  :defer t
+  :disabled
   :init (global-undo-tree-mode))
 
 ;; dired
@@ -633,7 +633,7 @@
     (add-hook 'haskell-literate-mode-hook #'lsp))
 
   (use-package lsp-pyright
-    :disabled
+    :ensure t
     :hook (python-mode . (lambda ()
                            (require 'lsp-pyright)
                            (lsp))))
@@ -772,9 +772,139 @@
   (setq migemo-regex-dictionary nil)
   (setq migemo-coding-system 'utf-8-unix))
 
+;; Enable vertico
+(use-package vertico
+  :ensure t
+  :init
+  (vertico-mode)
+
+  ;; Different scroll margin
+  (setq vertico-scroll-margin 0)
+
+  ;; Show more candidates
+  (setq vertico-count 30)
+
+  ;; Grow and shrink the Vertico minibuffer
+  (setq vertico-resize t)
+
+  ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
+  (setq vertico-cycle t)
+  )
+
+(use-package marginalia
+  :ensure t
+  :init
+  (marginalia-mode))
+
+;; Optionally use the `orderless' completion style. See
+;; `+orderless-dispatch' in the Consult wiki for an advanced Orderless style
+;; dispatcher. Additionally enable `partial-completion' for file path
+;; expansion. `partial-completion' is important for wildcard support.
+;; Multiple files can be opened at once with `find-file' if you enter a
+;; wildcard. You may also give the `initials' completion style a try.
+(use-package orderless
+  :ensure t
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+;; Persist history over Emacs restarts. Vertico sorts by history position.
+(use-package savehist
+  :ensure t
+  :init
+  (savehist-mode))
+
+;; A few more useful configurations...
+(use-package emacs
+  :init
+  ;; Add prompt indicator to `completing-read-multiple'.
+  ;; Alternatively try `consult-completing-read-multiple'.
+  (defun crm-indicator (args)
+    (cons (concat "[CRM] " (car args)) (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+  ;; Do not allow the cursor in the minibuffer prompt
+  (setq minibuffer-prompt-properties
+        '(read-only t cursor-intangible t face minibuffer-prompt))
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
+  ;; Vertico commands are hidden in normal buffers.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable recursive minibuffers
+  (setq enable-recursive-minibuffers t))
+
+(use-package consult
+  :ensure t
+  :bind (("C-x b"   . consult-buffer)              ;; orig. switch-to-buffer
+         ("s-g g"   . consult-goto-line)           ;; orig. goto-line
+         ("s-g s-g" . consult-goto-line)           ;; orig. goto-line
+         ("C-s"     . consult-line)                ;; orig. isearch-next
+         ("M-i"     . consult-outline)
+         ("s-t"     . consult-recent-file)
+         ("s-f"     . consult-find)
+         )
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+  :config
+  (setq consult-project-root-function #'projectile-project-root))
+
+(use-package vertico-buffer
+    :after vertico)
+
+;; Configure directory extension.
+(use-package vertico-directory
+  :after vertico
+  :ensure nil
+  ;; More convenient directory navigation commands
+  :bind (:map vertico-map
+              ("RET" . vertico-directory-enter)
+              ("DEL" . vertico-directory-delete-char)
+              ("M-DEL" . vertico-directory-delete-word)
+              ("C-l" . vertico-directory-up)
+              ("\d" . vertico-directory-delete-char))
+  ;; Tidy shadowed file names
+  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+;; Consult users will also want the embark-consult package.
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
 ;; helm
 (use-package helm
-  ;;:disabled
+  :disabled
   :ensure t
   :init (helm-mode)
   :bind
@@ -882,55 +1012,6 @@
     :bind
     ("M-x" . smex)
     ("M-X" . xmex-major-mode-commands)))
-
-;; ivy
-(use-package ivy
-  :disabled
-  :ensure t
-  :init (ivy-mode)
-  :bind
-  ("C-s"     . swiper)
-  ("C-c C-s" . swiper-thing-at-point)
-  ("<f6>"    . ivy-resume)
-  ("M-x"     . counsel-M-x)
-  ("M-i"     . counsel-imenu)
-  ("C-x C-f" . counsel-find-file)
-  ("<f1> f"  . counsel-describe-function)
-  ("<f1> v"  . counsel-describe-variable)
-  ("<f2> i"  . counsel-info-lookup-symbol)
-  ("<f2> u"  . counsel-unicode-char)
-  ("C-c g"   . counsel-git)
-  ("C-c j"   . counsel-git-grep)
-  ("C-c k"   . counsel-ag)
-  ("C-x l"   . counsel-locate)
-  :config
-  (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t)
-  (setq ivy-height 35)
-  (setq ivy-truncate-lines t)
-  (setq ivy-wrap t)
-
-  (use-package all-the-icons-ivy
-    :ensure t
-    :init
-    (add-hook 'after-init-hook 'all-the-icons-ivy-setup))
-
-  (use-package all-the-icons-ivy-rich
-    :ensure t
-    :after (ivy-rich)
-    :init (all-the-icons-ivy-rich-mode 1))
-
-  (use-package ivy-rich
-    :ensure t
-    :init
-    (add-hook 'after-init-hook (lambda () (ivy-rich-mode t)))
-    :config
-    (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
-
-  (use-package counsel-projectile
-    :ensure t
-    :after (projectile)
-    :init (counsel-projectile-mode)))
 
 (use-package imenu-anywhere
   :ensure t
@@ -1199,11 +1280,7 @@
 
 (use-package ocamlformat
   :ensure t
-  :after (tuareg)
-  :custom (ocamlformat-enable 'enable-outside-detected-project)
-  ;; :hook (before-save . ocamlformat-before-save)
-  :config
-  (define-key tuareg-mode-map (kbd "C-M-<tab>") #'ocamlformat))
+  :after (tuareg))
 
 ;; Proof General
 (use-package proof-general :ensure t)
@@ -1459,7 +1536,7 @@
            "* TODO %?\n %i\n")
           ("T" "ToDo with link" entry (file "~/Dropbox/org/todo.org")
            "* TODO %i%? \n:PROPERTIES: \n:CREATED: %U \n:END: \n %a\n")
-          ("n" "Note" entry (file "~/Dropbox/org/notes/inbox.org")
+          ("m" "Memo" entry (file "~/Dropbox/org/memo.org")
            "* %?\n   %a\n    %T")
           ))
 
