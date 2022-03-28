@@ -122,6 +122,9 @@
 (cua-mode t)
 (setq cua-enable-cua-keys nil)
 
+;; ssh connection
+(setq tramp-default-method "sshx")
+
 ;; Eshell
 (use-package eshell
   :defer t
@@ -540,6 +543,7 @@
   :ensure t)
 
 (use-package company-fuzzy
+  :disabled
   :ensure t
   :hook (company-mode . company-fuzzy-mode)
   :init
@@ -853,6 +857,23 @@
          )
   :hook (completion-list-mode . consult-preview-at-point-mode)
   :config
+
+  (defun consult-buffer-state-no-tramp ()
+    "Buffer state function that doesn't preview Tramp buffers."
+    (let ((orig-state (consult--buffer-state))
+          (filter (lambda (cand restore)
+                    (if (or restore
+                            (let ((buffer (get-buffer cand)))
+                              (and buffer
+                                   (not (file-remote-p (buffer-local-value 'default-directory buffer))))))
+                        cand
+                      nil))))
+      (lambda (cand restore)
+        (funcall orig-state (funcall filter cand restore) restore))))
+
+  (setq consult--source-buffer
+        (plist-put consult--source-buffer :state #'consult-buffer-state-no-tramp))
+
   (setq consult-project-root-function #'projectile-project-root))
 
 (use-package vertico-buffer

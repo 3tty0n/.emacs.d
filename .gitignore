@@ -15,6 +15,9 @@ opam-user-setup.el
 bookmarks
 eww-bookmarks
 projects
+history
+company-*
+tramp*
 
 auctex/
 auto-save-list/
