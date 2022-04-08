@@ -449,7 +449,7 @@
 
 ;; color theme
 (use-package spacemacs-common
-  ;; :disabled
+  :disabled
   :ensure spacemacs-theme
   :if (not (display-graphic-p))
   :config
@@ -460,9 +460,10 @@
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  :if (display-graphic-p)
+  ;; :if (display-graphic-p)
   :config
-  (load-theme 'doom-city-lights t)
+  ;; (load-theme 'doom-city-lights t)
+  (load-theme 'doom-one t)
   (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
@@ -823,6 +824,11 @@
   :init
   (savehist-mode))
 
+;; kill-ring
+(use-package browse-kill-ring
+  :ensure t
+  :init (global-set-key (kbd "C-c k") 'browse-kill-ring))
+
 ;; A few more useful configurations...
 (use-package emacs
   :init
@@ -845,53 +851,128 @@
   ;; Enable recursive minibuffers
   (setq enable-recursive-minibuffers t))
 
+;; Example configuration for Consult
 (use-package consult
   :ensure t
-  :bind (("C-x b"   . consult-buffer)              ;; orig. switch-to-buffer
-         ("s-g g"   . consult-goto-line)           ;; orig. goto-line
-         ("s-g s-g" . consult-goto-line)           ;; orig. goto-line
-         ("C-s"     . consult-line)                ;; orig. isearch-next
-         ("M-i"     . consult-outline)
-         ("s-t"     . consult-recent-file)
-         ("s-f"     . consult-find)
-         )
+  ;; Replace bindings. Lazily loaded due by `use-package'.
+  :bind (;; C-c bindings (mode-specific-map)
+         ("C-s" . consult-line)
+         ("C-c h" . consult-history)
+         ("C-c m" . consult-mode-command)
+         ("C-c k" . consult-kmacro)
+         ;; C-x bindings (ctl-x-map)
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+         ;; M- bindings
+         ("M-i" . consult-imenu)
+         ("M-I" . consult-imenu-multi)
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ("<help> a" . consult-apropos)            ;; orig. apropos-command
+         ;; M-g bindings (goto-map)
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ;; M-s bindings (search-map)
+         ("M-s d" . consult-find)
+         ("M-s D" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s m" . consult-multi-occur)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+  ;; Enable automatic preview at point in the *Completions* buffer. This is
+  ;; relevant when you use the default completion UI.
   :hook (completion-list-mode . consult-preview-at-point-mode)
+
+  ;; The :init configuration is always executed (Not lazy)
+  :init
+
+  ;; Optionally configure the register formatting. This improves the register
+  ;; preview for `consult-register', `consult-register-load',
+  ;; `consult-register-store' and the Emacs built-ins.
+  (setq register-preview-delay 0.5
+        register-preview-function #'consult-register-format)
+
+  ;; Optionally tweak the register preview window.
+  ;; This adds thin lines, sorting and hides the mode line of the window.
+  (advice-add #'register-preview :override #'consult-register-window)
+
+  ;; Optionally replace `completing-read-multiple' with an enhanced version.
+  (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  ;; Configure other variables and modes in the :config section,
+  ;; after lazily loading the package.
   :config
 
-  (defun consult-buffer-state-no-tramp ()
-    "Buffer state function that doesn't preview Tramp buffers."
-    (let ((orig-state (consult--buffer-state))
-          (filter (lambda (cand restore)
-                    (if (or restore
-                            (let ((buffer (get-buffer cand)))
-                              (and buffer
-                                   (not (file-remote-p (buffer-local-value 'default-directory buffer))))))
-                        cand
-                      nil))))
-      (lambda (cand restore)
-        (funcall orig-state (funcall filter cand restore) restore))))
+  ;; Optionally configure preview. The default value
+  ;; is 'any, such that any key triggers the preview.
+  ;; (setq consult-preview-key 'any)
+  ;; (setq consult-preview-key (kbd "M-."))
+  ;; (setq consult-preview-key (list (kbd "<S-down>") (kbd "<S-up>")))
+  ;; For some commands and buffer sources it is useful to configure the
+  ;; :preview-key on a per-command basis using the `consult-customize' macro.
+  (consult-customize
+   consult-theme
+   :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-bookmark consult--source-recent-file
+   consult--source-project-recent-file
+   :preview-key (kbd "M-."))
 
-  (setq consult--source-buffer
-        (plist-put consult--source-buffer :state #'consult-buffer-state-no-tramp))
+  ;; Optionally configure the narrowing key.
+  ;; Both < and C-+ work reasonably well.
+  (setq consult-narrow-key "<") ;; (kbd "C-+")
 
-  (setq consult-project-root-function #'projectile-project-root))
+  ;; Optionally make narrowing help available in the minibuffer.
+  ;; You may want to use `embark-prefix-help-command' or which-key instead.
+  ;; (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help)
 
-(use-package vertico-buffer
-    :after vertico)
-
-;; Configure directory extension.
-(use-package vertico-directory
-  :after vertico
-  :ensure nil
-  ;; More convenient directory navigation commands
-  :bind (:map vertico-map
-              ("RET" . vertico-directory-enter)
-              ("DEL" . vertico-directory-delete-char)
-              ("M-DEL" . vertico-directory-delete-word)
-              ("C-l" . vertico-directory-up)
-              ("\d" . vertico-directory-delete-char))
-  ;; Tidy shadowed file names
-  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+  ;; By default `consult-project-function' uses `project-root' from project.el.
+  ;; Optionally configure a different project root function.
+  ;; There are multiple reasonable alternatives to chose from.
+  ;;;; 1. project.el (the default)
+  ;; (setq consult-project-function #'consult--default-project--function)
+  ;;;; 2. projectile.el (projectile-project-root)
+  ;; (autoload 'projectile-project-root "projectile")
+  ;; (setq consult-project-function (lambda (_) (projectile-project-root)))
+  ;;;; 3. vc.el (vc-root-dir)
+  ;; (setq consult-project-function (lambda (_) (vc-root-dir)))
+  ;;;; 4. locate-dominating-file
+  ;; (setq consult-project-function (lambda (_) (locate-dominating-file "." ".git")))
+  )
 
 (use-package embark
   :ensure t
@@ -1514,16 +1595,6 @@
 (use-package pypytrace-mode
   :defer t
   :mode "\\.log\\.txt$")
-
-(use-package jedi
-  :disabled
-  :ensure t
-  :config
-  (add-hook 'python-mode-hook 'jedi:setup)
-  (setq jedi:complete-on-dot t)
-
-  (define-key ac-mode-map (kbd "C-n") 'ac-next)
-  (define-key ac-mode-map (kbd "C-p") 'ac-previous))
 
 ;; html
 (use-package htmlize :ensure t)
