@@ -596,6 +596,8 @@
          (ruby-mode     . lsp)
          (scala-mode    . lsp)
          (haskell-mode  . lsp)
+         (tuareg-mode   . lsp)
+         (caml-mode     . lsp)
          (lsp-mode      . lsp-enable-which-key-integration))
   :commands (lsp lsp-deferred)
   :init (lsp-headerline-breadcrumb-mode)
@@ -1475,7 +1477,7 @@
             #'TeX-revert-document-buffer)
 
   (use-package auctex-latexmk
-    :ensure t
+    :load-path "site-lisp/auctex-latexmk"
     :config
     (auctex-latexmk-setup)
     (setq shell-escape-mode t))
