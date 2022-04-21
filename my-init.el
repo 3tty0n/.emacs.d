@@ -826,11 +826,6 @@
   :init
   (savehist-mode))
 
-;; kill-ring
-(use-package browse-kill-ring
-  :ensure t
-  :init (global-set-key (kbd "C-c k") 'browse-kill-ring))
-
 ;; A few more useful configurations...
 (use-package emacs
   :init
