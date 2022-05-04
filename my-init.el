@@ -110,8 +110,20 @@
 (global-auto-revert-mode 1)
 
 ;; auto-fill
-(global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 80)
+;; (global-set-key (kbd "C-c q") 'auto-fill-mode)
+(setq-default fill-column 90)
+
+(use-package visual-fill
+  :ensure t
+  :defer t)
+
+(use-package virtual-auto-fill
+  :disabled
+  :ensure t
+  :defer t
+  :hook
+  (LaTeX-mode . virtual-auto-fill-mode)
+  (text-mode . virtual-auto-fill-mode))
 
 (global-visual-line-mode)
 
@@ -121,6 +133,12 @@
 ;; editting rectangle region
 (cua-mode t)
 (setq cua-enable-cua-keys nil)
+
+;; automatically fit emacs's windows size
+(use-package autofit-frame
+  :load-path "site-lisp/autofit-frame"
+  :config
+  (add-hook 'after-make-frame-functions 'fit-frame))
 
 ;; ssh connection
 (setq tramp-default-method "sshx")
