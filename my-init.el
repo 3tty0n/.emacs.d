@@ -543,6 +543,7 @@
   (use-package company-quickhelp :ensure t)
   (use-package company-reftex :ensure t)
   (use-package company-irony-c-headers :ensure t)
+  (use-package company-flx :ensure t)
   (define-key global-map (kbd "C-M-i") 'company-complete)
   (define-key company-active-map (kbd "C-n") 'company-select-next)
   (define-key company-active-map (kbd "C-p") 'company-select-previous)
@@ -557,9 +558,6 @@
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
-
-(use-package company-flx
-  :ensure t)
 
 (use-package company-fuzzy
   :disabled
@@ -685,7 +683,7 @@
   (lsp-ui-doc-enable t)
   (lsp-ui-doc-header t)
   (lsp-ui-doc-include-signature t)
-  (lsp-ui-doc-position 'top) ;; top, bottom, or at-point
+  (lsp-ui-doc-position 'at-point) ;; top, bottom, or at-point
   (lsp-ui-doc-max-width 180)
   (lsp-ui-doc-max-height 60)
   (lsp-ui-doc-use-childframe t)
@@ -753,7 +751,6 @@
   :config
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
-  (use-package flycheck-pos-tip :ensure t)
   (use-package flymake-shellcheck
     :commands flymake-shellcheck-load
     :init
