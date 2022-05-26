@@ -290,6 +290,14 @@
 ;; set C-h to backspace
 (global-set-key (kbd "C-h") 'backward-char)
 
+;; highlight indentation line
+(use-package highlight-indent-guides
+  :ensure t
+  :hook
+  (prog-mode . highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'character))
+
 ;; font config
 (use-package my-font :load-path "site-lisp")
 

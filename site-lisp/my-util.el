@@ -57,7 +57,7 @@
         ;; whatnot), then divide by the height of a char to
         ;; get the height we want
         (add-to-list 'default-frame-alist
-                     (cons 'height (/ (- (x-display-pixel-height) 200)
+                     (cons 'height (/ (- (x-display-pixel-height) 500)
                                       (frame-char-height)))))))
 
 (set-frame-size-according-to-resolution)
