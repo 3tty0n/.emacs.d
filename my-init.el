@@ -665,11 +665,14 @@
 
   (use-package lsp-pyright
     :ensure t
+    :config
+    (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
     :hook (python-mode . (lambda ()
                            (require 'lsp-pyright)
                            (lsp))))
 
   (use-package lsp-python-ms
+    :disabled
     :ensure t
     :config
     ;; (setq lsp-python-ms-auto-install-server t)
