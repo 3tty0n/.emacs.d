@@ -17,7 +17,6 @@
   )
 
 (use-package marginalia
-  :disabled
   :ensure t
   :init
   (marginalia-mode))
@@ -40,7 +39,6 @@
 
 ;; Persist history over Emacs restarts. Vertico sorts by history position.
 (use-package savehist
-  :disabled
   :ensure t
   :init
   (savehist-mode))
@@ -189,3 +187,5 @@
   ;;;; 4. locate-dominating-file
   ;; (setq consult-project-function (lambda (_) (locate-dominating-file "." ".git")))
   )
+
+(provide 'my-consult)
