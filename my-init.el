@@ -1381,6 +1381,11 @@
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
+;; smalltalk
+(use-package smalltalk-mode
+  :ensure t
+  :mode ("\.som$" . smalltalk-mode))
+
 ;; html
 (use-package htmlize :ensure t)
 
