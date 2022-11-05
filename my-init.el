@@ -26,6 +26,8 @@
 (use-package bind-key :ensure t)
 (use-package diminish :ensure t)
 
+(use-package package-utils :ensure t)
+
 (use-package mouse
   :if (eq system-name 'gnu/linux)
   :init
@@ -1384,7 +1386,11 @@
 ;; smalltalk
 (use-package smalltalk-mode
   :ensure t
-  :mode ("\.som$" . smalltalk-mode))
+  :mode ("\.som$" . smalltalk-mode)
+  )
+
+;; (use-package som-mode
+;;   :mode "\\.som$")
 
 ;; html
 (use-package htmlize :ensure t)
