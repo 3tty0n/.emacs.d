@@ -814,9 +814,9 @@
   (use-package helm-swoop
     :ensure t
     :bind
-    ;; (:map helm-swoop-map
-    ;;       ("C-r"     . helm-previous-line)
-    ;;       ("C-s"     . helm-next-line))
+    (:map helm-swoop-map
+          ("C-r"     . helm-previous-line)
+          ("C-s"     . helm-next-line))
     :config
     ;; If you prefer fuzzy matching
     ;; (setq helm-swoop-use-fuzzy-match t)
@@ -846,7 +846,10 @@
     ("C-x C-g" . helm-ag))
 
   (use-package helm-ls-git
-    :ensure t)
+    :ensure t
+    :bind
+    ("C-x C-d" . helm-browse-project)
+    ("C-x r p" . helm-projects-history))
 
   (use-package helm-ls-hg
     :ensure t)
