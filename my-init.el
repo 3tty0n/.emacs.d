@@ -477,7 +477,6 @@
 
 ;; color theme
 (use-package spacemacs-common
-  :disabled
   :ensure spacemacs-theme
   :if (not (display-graphic-p))
   :config
@@ -488,10 +487,10 @@
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  ;; :if (display-graphic-p)
+  :if (display-graphic-p)
   :config
-  ;; (load-theme 'doom-city-lights t)
-  (load-theme 'doom-one t)
+  (load-theme 'doom-city-lights t)
+  ;; (load-theme 'doom-one t)
   (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
