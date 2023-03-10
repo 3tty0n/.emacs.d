@@ -268,7 +268,9 @@
 (setq scroll-conservatively 10)
 (setq scroll-margin 10)
 
-(scroll-bar-mode -1) ; スクロールバーを非表示
+(when (window-system)
+  (scroll-bar-mode -1) ; スクロールバーを非表示
+  )
 
 (if (version<= "26.0.50" emacs-version)
     (progn
