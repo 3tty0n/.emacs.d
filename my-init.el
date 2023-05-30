@@ -61,9 +61,9 @@
   (setq dashboard-items '((recents   . 10)
                           (projects  . 10)
                           (bookmarks . 10)))
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq dashboard-set-navigator t)
+  ;; (setq dashboard-set-heading-icons t)
+  ;; (setq dashboard-set-file-icons t)
+  ;; (setq dashboard-set-navigator t)
   (dashboard-setup-startup-hook))
 
 ;; hide warnings
@@ -143,7 +143,9 @@
   (add-hook 'after-make-frame-functions 'fit-frame))
 
 ;; ssh connection
-(setq tramp-default-method "sshx")
+(use-package tramp
+  :config
+  (setq tramp-default-method "ssh"))
 
 ;; Eshell
 (use-package eshell
@@ -319,34 +321,13 @@
 ;; undo tree
 (use-package undo-tree
   :ensure t
-  :disabled
-  :init (global-undo-tree-mode))
+  :init (global-undo-tree-mode)
+  :config
+  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
 
 ;; dired
 (with-eval-after-load 'dired
   (setq dired-dwim-target t))
-
-(use-package dired-sidebar
-  :disabled
-  :bind (("C-x C-n" . dired-sidebar-toggle-sidebar))
-  :ensure t
-  :commands (dired-sidebar-toggle-sidebar)
-  :init
-  (add-hook 'dired-sidebar-mode-hook
-            (lambda ()
-              (progn
-                (unless (file-remote-p default-directory)
-                  (auto-revert-mode))
-                (display-line-numbers-mode -1))
-              ))
-  :config
-  (push 'toggle-window-split dired-sidebar-toggle-hidden-commands)
-  (push 'rotate-windows dired-sidebar-toggle-hidden-commands)
-
-  (setq dired-sidebar-subtree-line-prefix "__")
-  (setq dired-sidebar-theme 'ascii)
-  (setq dired-sidebar-use-term-integration t)
-  (setq dired-sidebar-use-custom-font t))
 
 (use-package vscode-icon
   :ensure t
@@ -467,9 +448,11 @@
   :ensure t
   :config (treemacs-set-scope-type 'Tabs))
 
-(use-package neotree :ensure t)
-;;; Input method
+(use-package neotree
+  :ensure t
+  :disabled)
 
+;;; Input method
 (setq current-input-method nil)
 (setq default-input-method nil)
 
@@ -483,7 +466,9 @@
   :config
   (use-package viper :init (setq viper-mode -1))
 
-  ;; (setq skk-kutouten-type 'en)
+  (setq skk-kutouten-type 'en)
+
+  ;; Turn off AquaSKK
 
   (setq skk-user-directory "~/.ddskk")
   (setq default-input-method "japanese-skk")
@@ -528,8 +513,9 @@
 
 ;; color theme
 (use-package spacemacs-common
+  :disabled
   :ensure spacemacs-theme
-  :if (not (display-graphic-p))
+  ;; :if (not (display-graphic-p))
   :config
   (load-theme 'spacemacs-dark t))
 
@@ -538,10 +524,11 @@
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  :if (display-graphic-p)
+  ;; :if (display-graphic-p)
   :config
   (load-theme 'doom-city-lights t)
   ;; (load-theme 'doom-one t)
+  ;; (load-theme 'doom-peacock t)
   (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
@@ -582,11 +569,15 @@
   :config
   (use-package all-the-icons-dired
     :ensure t
+    :defer t
     :init
-    (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)))
+    (add-hook 'dired-mode-hook (lambda ()
+                                 (unless (eq major-mode 'dired-sidebar-mode)
+                                   (all-the-icons-dired-mode))))))
 
 (use-package emojify
   :ensure t
+  :disabled
   :init (global-emojify-mode t))
 
 ;; ide settings
@@ -814,6 +805,7 @@
   :config
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
+  (use-package flycheck-mypy :ensure t)
   (use-package flymake-shellcheck
     :commands flymake-shellcheck-load
     :init
@@ -903,6 +895,20 @@
 
   (use-package helm-ls-hg
     :ensure t)
+
+  (use-package helm-tramp
+    :ensure t
+    :bind ("C-c s" . helm-tramp)
+    :config
+    (add-hook 'helm-tramp-pre-command-hook
+              '(lambda ()
+                 (projectile-mode 0)
+                 ))
+    (add-hook 'helm-tramp-quit-hook
+              '(lambda () (global-aggressive-indent-mode 1)
+                 (projectile-mode 1)
+                 )))
+
   ;; Fuzzy matching
   (setq helm-mode-fuzzy-match t)
   (setq helm-completion-in-region-fuzzy-match t)
@@ -1001,11 +1007,13 @@
 
 ;; Show tabs corresponding to a window
 (use-package tab-bar
-  :if (and (version<= "27.1" emacs-version)
-           (eq system-type 'gnu/linux))
+  ;; :if (and (version<= "27.1" emacs-version)
+  ;;          (eq system-type 'gnu/linux))
+  :if (version<= "27.1" emacs-version)
   :bind (("C-z C-c" . tab-bar-new-tab)
          ("C-z C-k" . tab-close)
          ("C-z C-n" . tab-next)
+         ("C-<tab>" . tab-next)
          ("C-z C-p" . tab-previous))
   :config
   (setq tab-bar-new-tab-choice "*scratch*")
@@ -1014,6 +1022,7 @@
   (tab-bar-mode))
 
 (use-package elscreen
+  :disabled
   :ensure t
   :if (eq system-type 'darwin)
   :init (elscreen-start)
@@ -1175,8 +1184,8 @@
 (use-package tuareg
   :ensure t
   :init
-  (add-hook 'tuareg-mode-hook #'merlin-mode)
-  (add-hook 'tuareg-mode-hook #'merlin-eldoc-setup)
+  ;; (add-hook 'tuareg-mode-hook #'merlin-mode)
+  ;; (add-hook 'tuareg-mode-hook #'merlin-eldoc-setup)
   (add-hook 'tuareg-mode-hook #'utop-minor-mode)
   (add-to-list 'auto-mode-alist '("\\.ml[iylp]?" . tuareg-mode))
   (add-to-list 'auto-mode-alist '("dune" . dune-mode))
@@ -1194,6 +1203,7 @@
   :ensure t)
 
 (use-package merlin
+  :disabled ;; enable when lsp-ocaml is disabled
   :ensure t
   :after (tuareg)
   :config
@@ -1431,10 +1441,10 @@
   :defer t
   :mode "\\.log\\.txt$")
 
-(use-package python-black
-  :demand t
-  :after python
-  :hook (python-mode . python-black-on-save-mode-enable-dwim))
+;; (use-package python-black
+;;   :demand t
+;;   :after python
+;;   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 ;; smalltalk
 (use-package smalltalk-mode
@@ -1521,13 +1531,12 @@
 
   (use-package org-bullets
     :ensure t
-    :disabled
     :config
     (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
   (use-package org-superstar
     :ensure t
-    ;; :disabled
+    :disabled
     :init
     (add-hook 'org-mode-hook (lambda () (org-superstar-mode 1)))
     :config
