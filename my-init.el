@@ -323,19 +323,21 @@
   :ensure t
   :init (global-undo-tree-mode)
   :config
-  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
+  (setq undo-tree-enable-undo-in-region nil)
+  (setq undo-tree-auto-save-history nil))
 
 ;; dired
 (with-eval-after-load 'dired
   (setq dired-dwim-target t))
 
 (use-package vscode-icon
+  :disable
   :ensure t
   :commands (vscode-icon-for-file))
 
 (use-package treemacs
+  :disabled
   :ensure t
-  :defer t
   :init
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
@@ -431,8 +433,13 @@
   :ensure t)
 
 (use-package treemacs-icons-dired
+  :disabled
   :hook (dired-mode . treemacs-icons-dired-enable-once)
-  :ensure t)
+  :ensure t
+  :config
+  (with-eval-after-load 'dired
+    (treemacs-icons-dired-mode))
+  )
 
 (use-package treemacs-magit
   :after (treemacs magit)
@@ -450,7 +457,12 @@
 
 (use-package neotree
   :ensure t
-  :disabled)
+  :init t
+  (lambda () (display-line-numbers-mode -1))
+  :config
+  (setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+  (setq neo-smart-open t)
+  )
 
 ;;; Input method
 (setq current-input-method nil)
@@ -535,7 +547,7 @@
   (doom-themes-org-config))
 
 (use-package srcery-theme
-  :disabled
+  ;; :disabled
   :ensure t
   :if (not (display-graphic-p))
   :config
@@ -568,6 +580,7 @@
   :ensure t
   :config
   (use-package all-the-icons-dired
+    :disabled
     :ensure t
     :defer t
     :init
@@ -648,143 +661,21 @@
   :after (company)
   :hook (company-mode . company-box-mode))
 
-(setq lsp-keymap-prefix "C-l")
-
 ;; lsp
-(use-package lsp-mode
-  :ensure t
-  :hook ((c-mode        . lsp)
-         (c++-mode      . lsp)
-         (tuareg-mode   . lsp)
-         (scala-mode    . lsp)
-         (java-mode     . lsp)
-         (LaTeX-mode    . lsp)
-         (python-mode   . lsp)
-         (ruby-mode     . lsp)
-         (scala-mode    . lsp)
-         (haskell-mode  . lsp)
-         (tuareg-mode   . lsp)
-         (caml-mode     . lsp)
-         (lsp-mode      . lsp-enable-which-key-integration))
-  :commands (lsp lsp-deferred)
-  :init (lsp-headerline-breadcrumb-mode)
-  :config
-  ;; for better performance
-  (setq read-process-output-max (* 4 1024 1024)) ;; 4mb
-
-  (setq lsp-headerline-breadcrumb-enable nil)
-  ;; disable flymake
-  (setq lsp-prefer-flymake nil)
-
-  ;; completion
-  (setq lsp-completion-no-cache t)
-  (setq lsp-completion-provider :none)
-
-  (setq lsp-response-timeout 5)
-  (setq lsp-idle-delay 1)
-  (setq lsp-keep-workspace-alive nil)
-
-  (setq lsp-lens-enable nil)
-
-  ;; metals (for scala)
-  (use-package lsp-metals :ensure t :after lsp)
-
-  ;; lsp-latex
-  (use-package lsp-latex
-    :ensure t
-    :config
-    (setq lsp-latex-forward-search-executable "evince-synctex")
-    (setq lsp-latex-forward-search-args '("-f" "%l" "%p" "\"emacsclient +%l %f\""))
-    (setq lsp-tex-server 'digestif)
-    :after lsp)
-
-  (use-package lsp-java :ensure t :after lsp
-    :config (add-hook 'java-mode-hook 'lsp))
-
-  (use-package lsp-haskell :ensure t :after lsp
-    :config
-    (add-hook 'haskell-mode-hook #'lsp)
-    (add-hook 'haskell-literate-mode-hook #'lsp))
-
-  (use-package lsp-pyright
-    :ensure t
-    :config
-    (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
-    :hook (python-mode . (lambda ()
-                           (require 'lsp-pyright)
-                           (lsp))))
-
-  (use-package lsp-python-ms
-    :disabled
-    :ensure t
-    :config
-    ;; (setq lsp-python-ms-auto-install-server t)
-    (setq lsp-python-ms-executable
-          (executable-find
-           "~/src/github.com/microsoft/python-language-server/output/bin/Release/linux-x64/publish/Microsoft.Python.LanguageServer"))
-    ))
-
-;; optionally
-(use-package lsp-ui
-  :ensure t
-  :after lsp
-  :init (lsp-ui-mode)
-  :commands lsp-ui-mode
-  :hook
-  (lsp-mode . lsp-ui-mode)
-  (lsp-ui-imenu-mode . (lambda () (display-line-numbers-mode -1)))
-  :custom
-  (lsp-ui-doc-enable t)
-  (lsp-ui-doc-header t)
-  (lsp-ui-doc-include-signature t)
-  (lsp-ui-doc-position 'at-point) ;; top, bottom, or at-point
-  (lsp-ui-doc-max-width 180)
-  (lsp-ui-doc-max-height 60)
-  (lsp-ui-doc-use-childframe t)
-  (lsp-ui-doc-delay 0.5)
-  ;; (lsp-ui-doc-use-webkit t)
-  ;; lsp-ui-flycheck
-  (lsp-ui-flycheck-enable t)
-  ;; lsp-ui-sideline
-  (lsp-ui-sideline-enable t)
-  (lsp-ui-sideline-show-diagnostics t)
-  (lsp-ui-sideline-show-code-actions t)
-  (lsp-ui-sideline-update-mode t)
-  ;; (lsp-ui-sideline-delay 0.5)
-  ;; lsp-ui-peek
-  (lsp-ui-peek-enable t)
-  (lsp-ui-peek-peek-height 20)
-  (lsp-ui-peek-list-width 50)
-  (lsp-ui-peek-fontify 'on-demand) ;; never, on-demand, or always
-
-  (lsp-headerline-breadcrumb-enable nil)
-  :bind
-  ("C-c m" . lsp-ui-imenu)
-  :config
-  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
-  (add-hook 'after-make-frame-functions-hook 'tabbar-local-mode)
-  (add-hook 'after-make-frame-functions-hook (lambda (frame) (set-frame-parameter frame 'tab-bar-lines 0))))
-
-(use-package lsp-treemacs
-  :after lsp
-  :ensure t
-  :commands lsp-treemacs-errors-list
-  :config
-  ;; for metals
-  ;; (lsp-metals-treeview-enable t)
-  (setq lsp-metals-treeview-show-when-views-received t))
-
 (use-package eglot
-  :disabled
   :ensure t
-  :init
-  (add-hook 'LaTeX-mode-hook 'eglot-ensure))
+  :hook ((LaTeX-mode  . eglot-ensure)
+         (python-mode . eglot-ensure)
+         (java-mode   . eglot-ensure)))
+
+(use-package flycheck-eglot
+  :ensure t
+  :after (eglot))
 
 ;; find definitions
 (use-package smart-jump
   :ensure t
-  :config
+  :init
   (smart-jump-setup-default-registers))
 
 ;; syntax check
@@ -834,9 +725,9 @@
 
 (use-package ag :ensure t)
 
-(use-package my-consult
-  :disabled
-  :load-path "site-lisp/my-consult")
+;;(use-package my-consult
+;; :disabled
+;;  :load-path "site-lisp/my-consult")
 
 ;; helm
 (use-package helm

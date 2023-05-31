@@ -38,7 +38,7 @@
   (interactive "Alpha: ")
   (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
-(set-alpha 95)
+(set-alpha 97)
 
 ;; window size
 (defun set-frame-size-according-to-resolution ()
