@@ -17,7 +17,7 @@
 
 (with-system darwin
              (set-face-attribute 'default nil
-                                 :family "Fira Code" :height 130 :weight "Retina"))
+                                 :family "Fira Code" :height 150 :weight "Retina"))
 
 (provide 'my-font)
 ;;; my-font.el ends here
