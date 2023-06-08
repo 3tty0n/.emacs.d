@@ -10,14 +10,14 @@
      ,@body))
 
 (with-system gnu/linux
-             (progn
-               (add-to-list 'default-frame-alist '(font . "Fira Code Medium-11"))
-               (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
-             )
+  (progn
+    (add-to-list 'default-frame-alist '(font . "Fira Code Medium-11"))
+    (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))))
 
 (with-system darwin
-             (set-face-attribute 'default nil
-                                 :family "Fira Code" :height 150 :weight "Retina"))
+  (if (display-graphic-p)
+      (set-face-attribute 'default nil
+                          :family "Fira Code" :height 150 :weight "Retina")))
 
 (provide 'my-font)
 ;;; my-font.el ends here

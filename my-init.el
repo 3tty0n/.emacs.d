@@ -752,7 +752,7 @@
 
 (use-package vertico
   :ensure t
-  :bind (("C-l" . my-filename-upto-perent))
+  :bind (("C-l" . my-filename-upto-parent))
   :init
   (vertico-mode)
 
