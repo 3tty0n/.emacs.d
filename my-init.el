@@ -331,7 +331,6 @@
   (setq dired-dwim-target t))
 
 (use-package vscode-icon
-  :disable
   :ensure t
   :commands (vscode-icon-for-file))
 
@@ -455,15 +454,6 @@
   :ensure t
   :config (treemacs-set-scope-type 'Tabs))
 
-(use-package neotree
-  :ensure t
-  :init t
-  (lambda () (display-line-numbers-mode -1))
-  :config
-  (setq neo-theme (if (display-graphic-p) 'icons 'arrow))
-  (setq neo-smart-open t)
-  )
-
 ;;; Input method
 (setq current-input-method nil)
 (setq default-input-method nil)
@@ -532,13 +522,16 @@
   (load-theme 'spacemacs-dark t))
 
 (use-package doom-themes
+  :disabled
   :ensure t
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
   ;; :if (display-graphic-p)
   :config
-  (load-theme 'doom-city-lights t)
+  (if (display-graphic-p)
+      (load-theme 'doom-city-lights t)
+    (load-theme 'modus-vivendi t))
   ;; (load-theme 'doom-one t)
   ;; (load-theme 'doom-peacock t)
   (doom-themes-neotree-config)
@@ -546,25 +539,9 @@
   (doom-themes-treemacs-config)
   (doom-themes-org-config))
 
-(use-package srcery-theme
-  ;; :disabled
-  :ensure t
-  :if (not (display-graphic-p))
-  :config
-  (load-theme 'srcery t))
-
-(use-package jetbrains-darcula-theme
-  :disabled
-  :ensure t
-  :if (not (display-graphic-p))
-  :config
-  (load-theme 'jetbrains-darcula t))
-
-(use-package color-theme-modern
-  :ensure t)
-
 ;; mode-line
 (use-package powerline
+  :disabled
   :ensure t
   :config
   (powerline-default-theme))
