@@ -522,19 +522,18 @@
   (load-theme 'spacemacs-dark t))
 
 (use-package doom-themes
-  :disabled
   :ensure t
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
-  ;; :if (display-graphic-p)
   :config
-  (if (display-graphic-p)
-      (load-theme 'doom-city-lights t)
-    (load-theme 'modus-vivendi t))
+  (if (not (display-graphic-p))
+      (load-theme 'modus-vivendi t)
+    (load-theme 'doom-city-lights t))
+
   ;; (load-theme 'doom-one t)
   ;; (load-theme 'doom-peacock t)
-  (doom-themes-neotree-config)
+  ;; (doom-themes-neotree-config)
   (setq doom-themes-treemacs-theme "doom-colors")
   (doom-themes-treemacs-config)
   (doom-themes-org-config))
