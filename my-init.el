@@ -119,28 +119,12 @@
   :ensure t
   :defer t)
 
-(use-package virtual-auto-fill
-  :disabled
-  :ensure t
-  :defer t
-  :hook
-  (LaTeX-mode . virtual-auto-fill-mode)
-  (text-mode . virtual-auto-fill-mode))
-
-(global-visual-line-mode)
-
 ;; add key-bining for recompilation
 (global-set-key (kbd "M-c") 'recompile)
 
 ;; editting rectangle region
 (cua-mode t)
 (setq cua-enable-cua-keys nil)
-
-;; automatically fit emacs's windows size
-(use-package autofit-frame
-  :load-path "site-lisp/autofit-frame"
-  :config
-  (add-hook 'after-make-frame-functions 'fit-frame))
 
 ;; ssh connection
 (use-package tramp
@@ -517,7 +501,7 @@
 (use-package spacemacs-common
   :disabled
   :ensure spacemacs-theme
-  ;; :if (not (display-graphic-p))
+  :if (not (display-graphic-p))
   :config
   (load-theme 'spacemacs-dark t))
 
@@ -547,6 +531,7 @@
 
 
 (use-package doom-modeline
+  :if (eq system-type 'gnu/linux)
   :ensure t
   :hook (after-init . doom-modeline-mode)
         (after-init . display-time))
@@ -599,16 +584,6 @@
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
 
-(use-package company-fuzzy
-  :disabled
-  :ensure t
-  :hook (company-mode . company-fuzzy-mode)
-  :init
-  (setq company-fuzzy-sorting-backend 'flx
-        company-fuzzy-prefix-on-top nil
-        company-fuzzy-history-backends '(company-yasnippet)
-        company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@")))
-
 (use-package company-statistics
   :ensure t
   :hook (company-mode . company-statistics-mode)
@@ -640,16 +615,11 @@
 ;; lsp
 (use-package eglot
   :ensure t
-  :hook ((LaTeX-mode  . eglot-ensure)
-         (python-mode . eglot-ensure)
-         (scala-mode  . eglot-ensure)
-         (tuareg-mode . eglot-ensure)
-         (java-mode   . eglot-ensure))
-  :config
-  ;; (add-hook 'eglot-managed-mode-hook
-  ;;           (lambda ()
-  ;;             (remove-hook 'flymake-diagnostic-functions 'eglot-flymake-backend)
-  ;;             ))
+  ;; :hook ((python-mode . eglot-ensure)
+  ;;        (scala-mode  . eglot-ensure)
+  ;;        (tuareg-mode . eglot-ensure)
+  ;;        (java-mode   . eglot-ensure)
+  ;;        (LaTeX-mode  . eglot-ensure))
   )
 
 (use-package flycheck-eglot
@@ -657,6 +627,27 @@
   :after (flycheck eglot)
   :config
   (global-flycheck-eglot-mode 1))
+
+(use-package lsp-mode
+  :ensure t
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (LaTeX-mode . lsp)
+         (python-mode . lsp)
+         (tuareg-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+;; optionally
+(use-package lsp-ui :ensure t :commands lsp-ui-mode)
+(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list)
+
+;; optionally if you want to use debugger
+(use-package dap-mode :ensure t)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 ;; find definitions
 (use-package smart-jump
