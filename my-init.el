@@ -205,32 +205,9 @@
   (shell-pop-full-span t)
   (shell-pop-window-position "bottom"))
 
-(use-package multi-term
-  :ensure t
-  :defer t
-  :init
-  (add-hook 'term-mode-hook
-            (lambda () (display-line-numbers-mode -1)))
-  :config
-  (setq multi-term-program "/usr/bin/zsh")
-  (defun last-term-buffer (l)
-    "Return most recently used term buffer."
-    (when l
-      (if (eq 'term-mode (with-current-buffer (car l) major-mode))
-          (car l) (last-term-buffer (cdr l)))))
-
-  (defun get-term ()
-    "Switch to the term buffer last used, or create a new one if
-    none exists, or if the current buffer is already a term."
-    (interactive)
-    (let ((b (last-term-buffer (buffer-list))))
-      (if (or (not b) (eq 'term-mode major-mode))
-          (multi-term)
-        (switch-to-buffer b)))))
-
 ;; saveplace
 (save-place-mode 1)
-(setq save-place-file (locate-user-emacs-file "places" "~/.emacs.d/.cache/places"))
+(setq save-place-file (locate-user-emacs-file "~/.emacs.d/.cache/places"))
 
 
 (defalias 'yes-or-no-p 'y-or-n-p) ; yes-no → y-n
@@ -524,35 +501,20 @@
 
 ;; mode-line
 (use-package powerline
-  :disabled
   :ensure t
   :config
   (powerline-default-theme))
 
-
-(use-package doom-modeline
-  :if (eq system-type 'gnu/linux)
-  :ensure t
-  :hook (after-init . doom-modeline-mode)
-        (after-init . display-time))
-
 ;; icon
 (use-package all-the-icons
   :ensure t
-  :config
-  (use-package all-the-icons-dired
-    :disabled
-    :ensure t
-    :defer t
-    :init
-    (add-hook 'dired-mode-hook (lambda ()
-                                 (unless (eq major-mode 'dired-sidebar-mode)
-                                   (all-the-icons-dired-mode))))))
+  :if (display-graphic-p))
 
-(use-package emojify
-  :ensure t
-  :disabled
-  :init (global-emojify-mode t))
+(use-package nerd-icons
+  :ensure t)
+
+(use-package vscode-icon
+  :ensure t)
 
 ;; ide settings
 
@@ -564,10 +526,7 @@
   :config
   (use-package company-bibtex :ensure t)
   (use-package company-c-headers :ensure t)
-  (use-package company-irony :ensure t)
-  (use-package company-quickhelp :ensure t)
   (use-package company-reftex :ensure t)
-  (use-package company-irony-c-headers :ensure t)
   (use-package company-flx :ensure t)
   (define-key global-map (kbd "C-M-i") 'company-complete)
   (define-key company-active-map (kbd "C-n") 'company-select-next)
@@ -583,15 +542,6 @@
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
-
-(use-package company-statistics
-  :ensure t
-  :hook (company-mode . company-statistics-mode)
-  :after (company)
-  :config
-  (setq company-statistics-file my-company-history-file
-      company-transformers
-      '(company-sort-by-statistics company-sort-by-backend-importance)))
 
 (use-package company-dwim
   :load-path "site-lisp/company-dwim"
@@ -681,8 +631,11 @@
     (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
   (setq flymake-mode -1)
-  (if (display-graphic-p)
-      (flycheck-pos-tip-mode)))
+  (use-package flycheck-pos-tip
+    :ensure t
+    :if (display-graphic-p)
+    :config
+    (flycheck-pos-tip-mode)))
 
 ;; rainbow delimiters
 (use-package rainbow-delimiters
@@ -993,42 +946,6 @@
   (define-key helm-read-file-map (kbd "TAB") 'helm-execute-persistent-action)
   (define-key helm-find-files-map (kbd "TAB") 'helm-execute-persistent-action))
 
-;; ido
-(use-package ido
-  :disabled
-  :init
-  (ido-mode 1)
-  (ido-everywhere 1)
-  :config
-  (setq ido-enable-flex-matching t)
-
-  (use-package swoop
-    :ensure t
-    :bind
-    ("C-s" . swoop)
-    ("C-M-s" . swoop-multi)
-    ("M-s" . swoop-pcre-regexp)
-    ("C-S-s" . swoop-back-to-last-position))
-
-  (use-package ido-completing-read+
-    :ensure t
-    :after (ido)
-    :init (ido-ubiquitous-mode 1))
-
-  (use-package ido-vertical-mode
-    :ensure t
-    :init (ido-vertical-mode)
-    :after (ido)
-    :config
-    (setq ido-vertical-define-keys 'C-n-C-p-up-and-down))
-
-  (use-package smex
-    :ensure t
-    :after (ido)
-    :bind
-    ("M-x" . smex)
-    ("M-X" . xmex-major-mode-commands)))
-
 (use-package imenu-anywhere
   :ensure t
   :bind
@@ -1134,7 +1051,8 @@
 
 ;; for mercurial
 (use-package ahg
-  :ensure t)
+  :ensure t
+  :defer t)
 
 ;; Git gutter
 (use-package git-gutter
@@ -1162,41 +1080,12 @@
 
 ;;; Web
 
-;; Browser
-(use-package w3m
-  :ensure t
-  :defer t
-  :config
-  (setq w3m-default-display-inline-images t))
-
 ;; E-mail
 (use-package my-mu4e :load-path "~/.mu4e.d")
-
-(use-package circe
-  :ensure t
-  :config
-  (setq circe-network-options
-        '(("Libera Chat"
-           :nick "yuiza__"
-           :sasl-username "yuiza__"
-           :channels ("#pypy")
-           )))
-  (require 'lui-logging)
-  (enable-lui-logging-globally)
-  (setq lui-logging-directory "~/.emacs.d/.circle/logs"))
 
 ;;;;; Infra
 
 ;;;;; Language
-
-(use-package agda2-mode
-  :load-path "/usr/share/agda/emacs-mode/"
-  :disabled
-  :init
-  (add-hook 'agda2-mode-hook '(lambda () (deactivate-input-method)))
-  :config
-  (load-file (let ((coding-system-for-read 'utf-8))
-               (shell-command-to-string "agda-mode locate"))))
 
 ;; c
 (use-package cc-mode
@@ -1308,6 +1197,9 @@
   (add-hook 'LaTeX-mode-hook 'display-fill-column-indicator-mode)
   (flycheck-mode -1)
 
+  (if system-type 'gnu-linux
+    (setq TeX-view-program-selection '((output-pdf "Okular"))))
+
   (require 'tex-site)
   (setq TeX-parse-self t)
   (setq TeX-auto-save t)
@@ -1373,25 +1265,6 @@
     (setq reftex-cite-prompt-optional-args t)
     (setq reftex-plug-into-AUCTeX t)))
 
-
-;; c/c++
-(use-package irony
-  :ensure t
-  :disabled
-  :init
-  (add-hook 'c++-mode-hook 'irony-mode)
-  (add-hook 'c-mode-hook 'irony-mode)
-  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-  (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)
-  :config
-  (add-to-list 'company-backends 'company-irony)
-  (add-to-list 'company-backends 'company-irony-c-headers))
-
-(use-package irony-eldoc
-  :ensure t
-  :after (irony)
-  :init
-  (add-hook 'irony-mode-hook #'irony-eldoc))
 
 ;; lua
 (use-package lua-mode
@@ -1493,7 +1366,16 @@
 (use-package htmlize :ensure t)
 
 ;; markdown
-(use-package markdown-mode :ensure t)
+(use-package markdown-mode
+  :ensure t
+  :config
+  ;; pandoc
+  (setq markdown-command
+      (concat
+       "pandoc"
+       " --from=markdown --to=html"
+       " --standalone --mathjax --highlight-style=pygments"))
+  )
 
 ;; YAML
 (use-package yaml-mode
@@ -1567,14 +1449,6 @@
     :ensure t
     :config
     (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
-
-  (use-package org-superstar
-    :ensure t
-    :disabled
-    :init
-    (add-hook 'org-mode-hook (lambda () (org-superstar-mode 1)))
-    :config
-    (setq org-superstar-special-todo-items t))
 
   (use-package org-pomodoro
     :ensure t
