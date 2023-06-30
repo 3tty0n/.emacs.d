@@ -502,8 +502,15 @@
 ;; mode-line
 (use-package powerline
   :ensure t
+  :disabled
   :config
   (powerline-default-theme))
+
+;; XXX: hit M-x nerd-install-fonts
+;; https://github.com/seagle0128/doom-modeline#install
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode))
 
 ;; icon
 (use-package all-the-icons
