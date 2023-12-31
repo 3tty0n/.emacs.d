@@ -223,11 +223,6 @@
   ;; (sp-pair "'" "'" :actions nil)
   (sp-pair "`" "`" :actions nil))
 
-;; scrolling
-(use-package smooth-scrolling
-  :ensure t
-  :init (smooth-scrolling-mode))
-
 (setq scroll-conservatively 10)
 (setq scroll-margin 10)
 
@@ -488,9 +483,7 @@
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
   :config
-  (if (not (display-graphic-p))
-      (load-theme 'modus-vivendi t)
-    (load-theme 'doom-city-lights t))
+  (load-theme 'doom-city-lights t)
 
   ;; (load-theme 'doom-one t)
   ;; (load-theme 'doom-peacock t)
@@ -572,11 +565,9 @@
 ;; lsp
 (use-package eglot
   :ensure t
-  ;; :hook ((python-mode . eglot-ensure)
-  ;;        (scala-mode  . eglot-ensure)
-  ;;        (tuareg-mode . eglot-ensure)
-  ;;        (java-mode   . eglot-ensure)
-  ;;        (LaTeX-mode  . eglot-ensure))
+  :hook ((python-mode . eglot-ensure)
+         ;;(tuareg-mode . eglot-ensure)
+         )
   )
 
 (use-package flycheck-eglot
@@ -591,12 +582,15 @@
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (LaTeX-mode . lsp)
-         (python-mode . lsp)
-         (tuareg-mode . lsp)
+         (LaTeX-mode . lsp-deferred)
+         ;; (python-mode . lsp-deferred)
+         (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+  :commands lsp
+  :config
+  (use-package lsp-jedi
+    :ensure t))
 
 ;; optionally
 (use-package lsp-ui :ensure t :commands lsp-ui-mode)
@@ -678,6 +672,7 @@
                                  #'delete)))))
 
 (use-package vertico
+  :disabled
   :ensure t
   :bind (("C-l" . my-filename-upto-parent))
   :init
@@ -871,7 +866,6 @@
 
 ;; helm
 (use-package helm
-  :disabled
   :ensure t
   :init (helm-mode)
   :bind
@@ -1355,10 +1349,10 @@
   :defer t
   :mode "\\.log\\.txt$")
 
-;; (use-package python-black
-;;   :demand t
-;;   :after python
-;;   :hook (python-mode . python-black-on-save-mode-enable-dwim))
+(use-package python-black
+  :demand t
+  :after python
+  :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 ;; smalltalk
 (use-package smalltalk-mode
