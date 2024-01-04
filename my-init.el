@@ -938,7 +938,11 @@
   ;; Fuzzy matching
   (setq helm-mode-fuzzy-match t)
   (setq helm-completion-in-region-fuzzy-match t)
-  (setq helm-autoresize-mode t)
+
+  ;; resizing
+  (setq helm-autoresize-max-height 30)
+  (setq helm-autoresize-min-height 10)
+  (helm-autoresize-mode)
 
   (setq helm-always-two-windows nil)
   (setq helm-display-buffer-default-height 30)
@@ -1103,6 +1107,11 @@
                                      indent-tabs-mode nil)))
   (sh-mode-hook   . (lambda () (setq sh-basic-offset 4
                                      indent-tabs-mode nil))))
+
+;; sml
+
+(use-package sml-mode
+  :ensure t)
 
 ;; ocaml
 (use-package tuareg
