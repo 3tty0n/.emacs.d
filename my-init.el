@@ -566,8 +566,8 @@
 (use-package eglot
   :ensure t
   :hook ((python-mode . eglot-ensure)
-         ;;(tuareg-mode . eglot-ensure)
-         )
+         (tuareg-mode . eglot-ensure)
+         (R-mode . eglot-ensure))
   )
 
 (use-package flycheck-eglot
@@ -584,7 +584,7 @@
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (LaTeX-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
-         (tuareg-mode . lsp-deferred)
+         ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
@@ -867,7 +867,9 @@
 ;; helm
 (use-package helm
   :ensure t
-  :init (helm-mode)
+  :init
+  (helm-mode)
+  ;; (add-hook 'helm-mode-hook #'(lambda () (display-line-numbers-mode -1)))
   :bind
   ("C-x C-f" . helm-find-files)
   ("C-x C-m" . helm-recentf)
@@ -1362,6 +1364,18 @@
   :demand t
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
+
+;; R
+(use-package ess
+  :ensure t)
+
+(use-package ess-view
+  :ensure t
+  :after (ess))
+
+(use-package ess-R-data-view
+  :ensure t
+  :after (ess))
 
 ;; smalltalk
 (use-package smalltalk-mode
