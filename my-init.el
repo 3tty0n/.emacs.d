@@ -567,6 +567,7 @@
   :ensure t
   :hook ((python-mode . eglot-ensure)
          (tuareg-mode . eglot-ensure)
+         (LaTeX-mode  . eglot-ensure)
          (R-mode . eglot-ensure))
   )
 
@@ -577,6 +578,7 @@
   (global-flycheck-eglot-mode 1))
 
 (use-package lsp-mode
+  :disabled
   :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
@@ -593,11 +595,11 @@
     :ensure t))
 
 ;; optionally
-(use-package lsp-ui :ensure t :commands lsp-ui-mode)
-(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list)
+(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp)
+(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list :after lsp)
 
 ;; optionally if you want to use debugger
-(use-package dap-mode :ensure t)
+(use-package dap-mode :ensure t :after lsp)
 ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 ;; find definitions
