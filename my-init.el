@@ -113,7 +113,7 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 90)
+(setq-default fill-column 85)
 
 (use-package visual-fill
   :ensure t
@@ -567,9 +567,11 @@
   :ensure t
   :hook ((python-mode . eglot-ensure)
          (tuareg-mode . eglot-ensure)
-         (LaTeX-mode  . eglot-ensure)
+         ;; (LaTeX-mode  . eglot-ensure)
          (R-mode . eglot-ensure))
-  )
+  :config
+  (add-to-list 'eglot-server-programs
+               '(tex-mode "texlab")))
 
 (use-package flycheck-eglot
   :ensure t
@@ -578,7 +580,6 @@
   (global-flycheck-eglot-mode 1))
 
 (use-package lsp-mode
-  :disabled
   :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
