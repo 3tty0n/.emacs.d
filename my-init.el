@@ -1051,6 +1051,10 @@
    '(magit-diff-removed-hightlight ((t (:background "white" :foreground "blue"))))
    '(magit-hash ((t (:foreground "red"))))))
 
+(use-package magit-todos
+  :after magit
+  :config (magit-todos-mode 1))
+
 ;; for mercurial
 (use-package monky
   :ensure t
