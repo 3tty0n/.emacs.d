@@ -113,7 +113,7 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 85)
+(setq-default fill-column 90)
 
 (use-package visual-fill
   :ensure t
