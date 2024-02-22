@@ -618,7 +618,8 @@
     :after flymake
     :config
     (add-hook 'flymake-mode-hook #'flymake-diagnostic-at-point-mode))
-  (use-package flymake-python-pyflakes :ensure t))
+  (use-package flymake-python-pyflakes :ensure t)
+  (use-package flymake-shellcheck :ensure t))
 
 (use-package flycheck
   :ensure t
@@ -675,7 +676,6 @@
                                  #'delete)))))
 
 (use-package vertico
-  :disabled
   :ensure t
   :bind (("C-l" . my-filename-upto-parent))
   :init
@@ -869,6 +869,7 @@
 
 ;; helm
 (use-package helm
+  :disabled
   :ensure t
   :init
   (helm-mode)
