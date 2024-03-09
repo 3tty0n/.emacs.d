@@ -1174,7 +1174,7 @@
   :after (tuareg))
 
 ;; Proof General
-(use-package proof-general :ensure t)
+(use-package proof-general :ensure t :disabled)
 
 ;; LaTeX
 (use-package pdf-tools
