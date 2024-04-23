@@ -379,9 +379,9 @@
         ("C-x t C-t" . treemacs-find-file)
         ("C-x t M-t" . treemacs-find-tag)))
 
-(use-package treemacs-evil
-  :after (treemacs evil)
-  :ensure t)
+;; (use-package treemacs-evil
+;;   :after (treemacs evil)
+;;   :ensure t)
 
 (use-package treemacs-projectile
   :after (treemacs projectile)
@@ -424,7 +424,7 @@
   :config
   (use-package viper :init (setq viper-mode -1))
 
-  (setq skk-kutouten-type 'en)
+  ;; (setq skk-kutouten-type 'en)
 
   ;; Turn off AquaSKK
 
