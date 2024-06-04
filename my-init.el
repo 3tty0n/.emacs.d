@@ -565,10 +565,12 @@
 ;; lsp
 (use-package eglot
   :ensure t
-  :hook ((python-mode . eglot-ensure)
-         (tuareg-mode . eglot-ensure)
-         ;; (LaTeX-mode  . eglot-ensure)
-         (R-mode . eglot-ensure))
+  :hook ( (python-mode . eglot-ensure)
+          (tuareg-mode . eglot-ensure)
+          ;; (LaTeX-mode  . eglot-ensure)
+          (R-mode . eglot-ensure)
+          (rust-mode . eglot-ensure)
+          )
   :config
   (add-to-list 'eglot-server-programs
                '(tex-mode "texlab")))
@@ -1363,6 +1365,12 @@
               (setq cmd (concat (concat "py.test --color=no -rP -k " input) " ")))
             (compile (concat cmd (buffer-file-name)))))
       (py-execute-buffer))))
+
+(use-package ein
+  :ensure t
+  :config
+  (setq ein:worksheet-enable-undo t)
+)
 
 (use-package pypytrace-mode
   :defer t
