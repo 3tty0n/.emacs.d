@@ -570,6 +570,7 @@
           ;; (LaTeX-mode  . eglot-ensure)
           (R-mode . eglot-ensure)
           (rust-mode . eglot-ensure)
+          (typescript-mode . eglot-ensure)
           )
   :config
   (add-to-list 'eglot-server-programs
@@ -1332,6 +1333,10 @@
   (setq nxml-slash-auto-complete-flag t))
 
 (use-package flycheck-gradle :ensure t)
+
+;; Typescript
+(use-package typescript-mode
+  :ensure t)
 
 ;; haskell
 (use-package haskell-mode
