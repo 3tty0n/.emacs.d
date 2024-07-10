@@ -566,12 +566,8 @@
 (use-package eglot
   :ensure t
   :hook ( (python-mode . eglot-ensure)
-          (tuareg-mode . eglot-ensure)
-          ;; (LaTeX-mode  . eglot-ensure)
           (R-mode . eglot-ensure)
-          (rust-mode . eglot-ensure)
-          (typescript-mode . eglot-ensure)
-          )
+        )
   :config
   (add-to-list 'eglot-server-programs
                '(tex-mode "texlab")))
@@ -589,6 +585,9 @@
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (LaTeX-mode . lsp-deferred)
+         (rust-mode  . lsp-deferred)
+         (typescript-mode . lsp-deferred)
+         (tuareg-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
@@ -1518,6 +1517,38 @@
     :config
     :bind (:map org-agenda-mode-map
                 ("p" . org-pomodoro))))
+
+;; https://www.orgroam.com/
+(use-package org-roam
+  :ensure t
+  :custom
+  (org-roam-directory (file-truename "~/Dropbox/org-roam"))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n g" . org-roam-graph)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ;; Dailies
+         ("C-c n j" . org-roam-dailies-capture-today))
+  :config
+  ;; If you're using a vertical completion framework, you might want a more informative completion interface
+  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+  (org-roam-db-autosync-mode)
+  ;; If using org-roam-protocol
+  (require 'org-roam-protocol))
+
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  ;;  normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;;  a hookable mode anymore, you're advised to pick something yourself
+  ;;  if you don't care about startup time, use
+  ;;  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
 
 (use-package open-junk-file :ensure t)
 
