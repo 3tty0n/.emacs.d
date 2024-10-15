@@ -4,7 +4,7 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
 ;; and `package-pinned-packages`. Most users will not need or want to do this.
-;;(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (package-initialize)
 
 (setq byte-compile-warnings '(cl-functions))
@@ -588,6 +588,7 @@
          (rust-mode  . lsp-deferred)
          (typescript-mode . lsp-deferred)
          (tuareg-mode . lsp-deferred)
+         (c-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
@@ -1037,6 +1038,7 @@
 (use-package magit
   :ensure t
   :defer t
+  :pin "melpa-stable"
   :init
   (global-set-key (kbd "C-x g") 'magit)
   :config
@@ -1108,12 +1110,13 @@
 (use-package cc-mode
   :defer t
   :mode ("\\.g4\\'" . antlr-mode)
+  :config (setq c-basic-offset 4)
   :hook
   (asm-mode-hook  . (lambda () (setq-default indent-tabs-mode t)))
   (java-mode-hook . (lambda () (setq c-basic-offset 4
                                      tab-width 4
                                      indent-tabs-mode nil)))
-  (c-mode-hook    . (lambda () (setq c-basic-offset 2
+  (c-mode-hook    . (lambda () (setq c-basic-offset 4
                                      tab-always-indent 0
                                      c-auto-newline t
                                      indent-tabs-mode nil)))
@@ -1517,38 +1520,6 @@
     :config
     :bind (:map org-agenda-mode-map
                 ("p" . org-pomodoro))))
-
-;; https://www.orgroam.com/
-(use-package org-roam
-  :ensure t
-  :custom
-  (org-roam-directory (file-truename "~/Dropbox/org-roam"))
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n f" . org-roam-node-find)
-         ("C-c n g" . org-roam-graph)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
-         ;; Dailies
-         ("C-c n j" . org-roam-dailies-capture-today))
-  :config
-  ;; If you're using a vertical completion framework, you might want a more informative completion interface
-  (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
-  (org-roam-db-autosync-mode)
-  ;; If using org-roam-protocol
-  (require 'org-roam-protocol))
-
-(use-package org-roam-ui
-  :ensure t
-  :after org-roam
-  ;;  normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-  ;;  a hookable mode anymore, you're advised to pick something yourself
-  ;;  if you don't care about startup time, use
-  ;;  :hook (after-init . org-roam-ui-mode)
-  :config
-  (setq org-roam-ui-sync-theme t
-        org-roam-ui-follow t
-        org-roam-ui-update-on-save t
-        org-roam-ui-open-on-start t))
 
 (use-package open-junk-file :ensure t)
 
