@@ -567,10 +567,43 @@
   :ensure t
   :hook ( (python-mode . eglot-ensure)
           (R-mode . eglot-ensure)
+          (c-mode . eglot-ensure)
         )
   :config
   (add-to-list 'eglot-server-programs
-               '(tex-mode "texlab")))
+               '(tex-mode "texlab"))
+  (add-to-list 'eglot-server-programs
+               '(c-mode "ccls"))
+
+  (setq company-transformers nil)
+
+  (defun eglot-ccls-inheritance-hierarchy (&optional derived)
+    "Show inheritance hierarchy for the thing at point.
+If DERIVED is non-nil (interactively, with prefix argument), show
+the children of class at point."
+    (interactive "P")
+    (if-let* ((res (jsonrpc-request
+                    (eglot--current-server-or-lose)
+                    :$ccls/inheritance
+                    (append (eglot--TextDocumentPositionParams)
+                            `(:derived ,(if derived t :json-false))
+                            '(:levels 100) '(:hierarchy t))))
+              (tree (list (cons 0 res))))
+        (with-help-window "*ccls inheritance*"
+          (with-current-buffer standard-output
+            (while tree
+              (pcase-let ((`(,depth . ,node) (pop tree)))
+                (cl-destructuring-bind (&key uri range) (plist-get node :location)
+                  (insert (make-string depth ?\ ) (plist-get node :name) "\n")
+                  (make-text-button (+ (point-at-bol 0) depth) (point-at-eol 0)
+                                    'action `(lambda (_arg)
+                                               (interactive)
+                                               (find-file (eglot--uri-to-path ',uri))
+                                               (goto-char (car (eglot--range-region ',range)))))
+                  (cl-loop for child across (plist-get node :children)
+                           do (push (cons (1+ depth) child) tree)))))))
+      (eglot--error "Hierarchy unavailable")))
+  )
 
 (use-package flycheck-eglot
   :ensure t
@@ -588,7 +621,7 @@
          (rust-mode  . lsp-deferred)
          (typescript-mode . lsp-deferred)
          (tuareg-mode . lsp-deferred)
-         (c-mode . lsp-deferred)
+         ;; (c-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
