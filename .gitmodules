@@ -1,6 +1,3 @@
 [submodule "snippets/org-mode"]
 	path = snippets/org-mode
 	url = git@github.com:yyr/yasnippets-orgmode.git
-[submodule "site-lisp/webkit"]
-	path = site-lisp/webkit
-	url = git@github.com:akirakyle/emacs-webkit.git
