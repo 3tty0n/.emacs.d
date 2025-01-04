@@ -1,6 +1,3 @@
-[submodule "site-lisp/helm-slack"]
-	path = site-lisp/helm-slack
-	url = https://github.com/yuya373/helm-slack.git
 [submodule "snippets/org-mode"]
 	path = snippets/org-mode
 	url = git@github.com:yyr/yasnippets-orgmode.git
