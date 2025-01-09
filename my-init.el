@@ -13,26 +13,38 @@
 (if (eq system-type "gnu/linux")
     (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
 
-;; Bootstrapping use-package
-(eval-when-compile
-  (require 'package)
-  (package-initialize)
-  (unless (package-installed-p 'use-package)
-    (package-refresh-contents)
-    (package-install 'use-package))
-  (setq use-package-enable-imenu-support t)
-  (require 'use-package))
+;; Bootstrap straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(setq package-enable-at-startup nil)
+
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 (use-package bind-key :ensure t)
 (use-package diminish :ensure t)
 
+
 (use-package package-utils :ensure t)
 
-(use-package mouse
-  :if (eq system-name 'gnu/linux)
-  :init
-  (xterm-mouse-mode t)
-  (mouse-wheel-mode t))
+(unless (display-graphic-p)
+  (xterm-mouse-mode 1)
+   (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
+   (global-set-key (kbd "<mouse-5>") 'scroll-up-line))
 
 ;; path
 (use-package exec-path-from-shell
@@ -113,7 +125,19 @@
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
-(setq-default fill-column 90)
+(use-package fill-column-indicator
+  :ensure t
+  :config
+  (setq-default fill-column 80)
+  (setq fci-rule-column 80)
+  (setq fci-rule-width 1)
+  (setq fci-rule-color "darkgray")
+  (add-hook 'prog-mode-hook 'fci-mode))
+
+(use-package visual-fill-column
+  :ensure t
+  :hook
+  (visual-line-mode . visual-fill-column-mode))
 
 (use-package visual-fill
   :ensure t
@@ -261,10 +285,10 @@
   (setq highlight-indent-guides-method 'character))
 
 ;; font config
-(use-package my-font :load-path "site-lisp")
+(use-package my-font :straight nil :load-path "site-lisp/my-font")
 
 ;; utilities
-(use-package my-util :load-path "site-lisp")
+(use-package my-util :straight nil :load-path "site-lisp/my-util")
 
 ;; toggle truncate lines
 (global-set-key (kbd "C-c t") 'toggle-truncate-lines)
@@ -415,8 +439,9 @@
 (setq default-input-method nil)
 
 ;; ddskk
-(use-package skk
-  :ensure ddskk
+(use-package ddskk
+  ;; :ensure ddskk
+  :ensure t
   :defer t
   :init
   (global-set-key (kbd "C-x C-j") 'skk-mode)
@@ -544,12 +569,12 @@
         company-tooltip-align-annotations t))
 
 (use-package company-dwim
-  :load-path "site-lisp/company-dwim"
-  :after (company))
+  :straight (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
 
-(use-package company-anywhere
-  :load-path "site-lisp/company-anywhere"
-  :after (company))
+(use-package company-anywhare
+  :straight nil
+  :load-path "site-lisp/company-anywhare")
+
 
 (use-package company-quickhelp
   :ensure t
@@ -621,6 +646,7 @@ the children of class at point."
          (rust-mode  . lsp-deferred)
          (typescript-mode . lsp-deferred)
          (tuareg-mode . lsp-deferred)
+         (js-mode . lsp-deferred)
          ;; (c-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
@@ -629,6 +655,8 @@ the children of class at point."
   :commands lsp
   :config
   (use-package lsp-jedi
+    :ensure t)
+  (use-package ccls
     :ensure t))
 
 ;; optionally
@@ -647,7 +675,6 @@ the children of class at point."
 
 ;; syntax check
 (use-package flymake
-  :disabled
   :config
   (use-package flymake-diagnostic-at-point
     :ensure t
@@ -671,7 +698,7 @@ the children of class at point."
     :init
     (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 
-  (setq flymake-mode -1)
+  ;; (setq flymake-mode -1)
   (use-package flycheck-pos-tip
     :ensure t
     :if (display-graphic-p)
@@ -821,7 +848,8 @@ the children of class at point."
            ("M-s g" . consult-grep)
            ("M-s G" . consult-git-grep)
            ("M-s r" . consult-ripgrep)
-           ("C-s"   . consult-line)
+           ;; ("C-s"   . consult-line)
+           ("C-s" . consult-line-at-point)
            ("M-s l" . consult-line)
            ("M-s L" . consult-line-multi)
            ("M-s k" . consult-keep-lines)
@@ -862,6 +890,12 @@ the children of class at point."
     ;; Configure other variables and modes in the :config section,
     ;; after lazily loading the package.
     :config
+
+    (defun consult-line-at-point (&optional at-point)
+      (interactive)
+      (if at-point
+          (consult-line (thing-at-point 'symbol))
+        (consult-line)))
 
     ;; Optionally configure preview. The default value
     ;; is 'any, such that any key triggers the preview.
@@ -1133,7 +1167,8 @@ the children of class at point."
 ;;; Web
 
 ;; E-mail
-(use-package my-mu4e :load-path "~/.mu4e.d")
+;; (use-package my-mu4e :load-path "~/.mu4e.d")
+(load "~/.mu4e.d/my-mu4e.el")
 
 ;;;;; Infra
 
@@ -1243,16 +1278,14 @@ the children of class at point."
         languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
 (use-package tex
-  :ensure auctex
-  :defer t
+  :straight auctex
   :mode ("\\.tex\\'" . LaTeX-mode)
-  :init
   :config
-  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
-  (add-hook 'LaTeX-mode-hook 'turn-on-flyspell)
-  (add-hook 'LaTeX-mode-hook 'turn-on-auto-fill)
-  (add-hook 'LaTeX-mode-hook 'visual-line-mode)
-  (add-hook 'LaTeX-mode-hook 'display-fill-column-indicator-mode)
+  (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
+  (add-hook 'LaTeX-mode-hook #'turn-on-flyspell)
+  (add-hook 'LaTeX-mode-hook #'turn-on-auto-fill)
+  ;; (add-hook 'LaTeX-mode-hook #'visual-line-mode)
+  (add-hook 'LaTeX-mode-hook #'display-fill-column-indicator-mode)
   (flycheck-mode -1)
 
   (if system-type 'gnu-linux
@@ -1304,25 +1337,32 @@ the children of class at point."
             #'TeX-revert-document-buffer)
 
   (use-package auctex-latexmk
+    :straight nil
     :load-path "site-lisp/auctex-latexmk"
     :config
     (auctex-latexmk-setup)
     (setq shell-escape-mode t))
 
   (use-package company-auctex
-    :disabled
-    :ensure t
+    :straight (:type git :host github :repo "alexeyr/company-auctex")
     :init
     (company-auctex-init))
 
   (use-package reftex
-    :ensure t
+    :straight nil
+    :init
+    (reftex-mode)
     :config
     (setq reftex-section-levels
           (append '(("frametitle" . -3) ) reftex-section-levels))
     (setq reftex-cite-prompt-optional-args t)
-    (setq reftex-plug-into-AUCTeX t)))
+    (setq reftex-plug-into-AUCTeX t))
 
+  (use-package auctex-cont-latexmk
+    :ensure t
+    :bind
+    (:map LaTeX-mode-map
+          ("C-c k" . auctex-cont-latexmk-toggle))))
 
 ;; lua
 (use-package lua-mode
@@ -1355,6 +1395,7 @@ the children of class at point."
 
 ;; Java CUP
 (use-package cup-java-mode
+  :straight nil
   :load-path "site-lisp/cup-java"
   :mode "\\.cup$")
 
@@ -1368,6 +1409,15 @@ the children of class at point."
   (setq nxml-slash-auto-complete-flag t))
 
 (use-package flycheck-gradle :ensure t)
+
+;; JavaScript
+(use-package js2-mode
+  :ensure t
+  :mode "\\.js\\$")
+
+(use-package peg
+  :ensure t
+  :mode "\\.(pegjs|peg)\\$")
 
 ;; Typescript
 (use-package typescript-mode
@@ -1388,6 +1438,7 @@ the children of class at point."
 
 ;; Python
 (use-package python
+  :straight nil
   :config
   (defun python-pytest ()
     (interactive)
@@ -1413,13 +1464,18 @@ the children of class at point."
 )
 
 (use-package pypytrace-mode
+  :straight nil
   :defer t
   :mode "\\.log\\.txt$")
 
 (use-package python-black
+  :ensure t
   :demand t
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
+
+(use-package jupyter
+  :ensure t)
 
 ;; R
 (use-package ess
