@@ -33,13 +33,12 @@
 (setq package-enable-at-startup nil)
 
 (straight-use-package 'use-package)
-(setq straight-use-package-by-default t)
 
-(use-package bind-key :ensure t)
-(use-package diminish :ensure t)
+(use-package bind-key :straight t)
+(use-package diminish :straight t)
 
 
-(use-package package-utils :ensure t)
+(use-package package-utils :straight t)
 
 (unless (display-graphic-p)
   (xterm-mouse-mode 1)
@@ -48,7 +47,7 @@
 
 ;; path
 (use-package exec-path-from-shell
-  :ensure t
+  :straight t
   :if (memq window-system '(mac ns x))
   :init (exec-path-from-shell-initialize))
 
@@ -57,18 +56,18 @@
   (unless (eq (server-running-p) 't)
     (server-start)))
 
-(use-package restart-emacs :ensure t)
+(use-package restart-emacs :straight t)
 
 (use-package esup
   :disabled
-  :ensure t
+  :straight t
   ;; To use MELPA Stable use ":pin mepla-stable",
   :pin melpa
   :commands (esup))
 
 ;; initial window
 (use-package dashboard
-  :ensure t
+  :straight t
   :config
   (setq dashboard-items '((recents   . 10)
                           (projects  . 10)
@@ -126,7 +125,7 @@
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
 (use-package fill-column-indicator
-  :ensure t
+  :straight t
   :config
   (setq-default fill-column 80)
   (setq fci-rule-column 80)
@@ -135,12 +134,12 @@
   (add-hook 'prog-mode-hook 'fci-mode))
 
 (use-package visual-fill-column
-  :ensure t
+  :straight t
   :hook
   (visual-line-mode . visual-fill-column-mode))
 
 (use-package visual-fill
-  :ensure t
+  :straight t
   :defer t)
 
 ;; add key-bining for recompilation
@@ -170,10 +169,10 @@
 
 (use-package esh-autosuggest
   :defer t
-  :ensure t)
+  :straight t)
 
 (use-package eshell-prompt-extras
-  :ensure t
+  :straight t
   :after (eshell)
   :defer t
   :disabled
@@ -184,7 +183,7 @@
           eshell-prompt-function 'epe-theme-lambda)))
 
 (use-package eshell-git-prompt
-  :ensure t
+  :straight t
   :after (eshell)
   :defer t
   :init
@@ -192,7 +191,7 @@
 
 (use-package eshell-z
   :after (eshell)
-  :ensure t
+  :straight t
   :bind ("C-x C-z" . eshell-z))
 
 ;; shell
@@ -201,14 +200,14 @@
 (add-hook 'shell-mode-hook (lambda () (display-line-numbers-mode -1)))
 
 (use-package vterm
-  :ensure t
+  :straight t
   :init
   (add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
   :bind
   ("C-x v t" . vterm-other-window)
   :config
   (use-package multi-vterm
-    :ensure t
+    :straight t
     :bind
     ((",n" . multi-vterm-next)
      (",p" . multi-vterm-prev)
@@ -218,7 +217,7 @@
 
 ;; shell-pop
 (use-package shell-pop
-  :ensure t
+  :straight t
   :bind
   ("C-t". shell-pop)
   :custom
@@ -240,7 +239,7 @@
 
 ;; smartparens
 (use-package smartparens
-  :ensure t
+  :straight t
   :init
   (smartparens-global-mode)
   :config
@@ -278,7 +277,7 @@
 
 ;; highlight indentation line
 (use-package highlight-indent-guides
-  :ensure t
+  :straight t
   :hook
   (prog-mode . highlight-indent-guides-mode)
   :config
@@ -300,7 +299,7 @@
 
 ;; undo tree
 (use-package undo-tree
-  :ensure t
+  :straight t
   :init (global-undo-tree-mode)
   :config
   (setq undo-tree-enable-undo-in-region nil)
@@ -311,12 +310,12 @@
   (setq dired-dwim-target t))
 
 (use-package vscode-icon
-  :ensure t
+  :straight t
   :commands (vscode-icon-for-file))
 
 (use-package treemacs
   :disabled
-  :ensure t
+  :straight t
   :init
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
@@ -405,16 +404,16 @@
 
 ;; (use-package treemacs-evil
 ;;   :after (treemacs evil)
-;;   :ensure t)
+;;   :straight t)
 
 (use-package treemacs-projectile
   :after (treemacs projectile)
-  :ensure t)
+  :straight t)
 
 (use-package treemacs-icons-dired
   :disabled
   :hook (dired-mode . treemacs-icons-dired-enable-once)
-  :ensure t
+  :straight t
   :config
   (with-eval-after-load 'dired
     (treemacs-icons-dired-mode))
@@ -422,16 +421,16 @@
 
 (use-package treemacs-magit
   :after (treemacs magit)
-  :ensure t)
+  :straight t)
 
 (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
   :after (treemacs persp-mode) ;;or perspective vs. persp-mode
-  :ensure t
+  :straight t
   :config (treemacs-set-scope-type 'Perspectives))
 
 (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
   :after (treemacs)
-  :ensure t
+  :straight t
   :config (treemacs-set-scope-type 'Tabs))
 
 ;;; Input method
@@ -440,8 +439,8 @@
 
 ;; ddskk
 (use-package ddskk
-  ;; :ensure ddskk
-  :ensure t
+  ;; :straight ddskk
+  :straight t
   :defer t
   :init
   (global-set-key (kbd "C-x C-j") 'skk-mode)
@@ -490,20 +489,20 @@
 
 ;; evil-mode
 (use-package evil
-  :ensure t
+  :straight t
   :config
   (setq evil-disable-insert-state-bindings t))
 
 ;; color theme
 (use-package spacemacs-common
   :disabled
-  :ensure spacemacs-theme
+  :straight spacemacs-theme
   :if (not (display-graphic-p))
   :config
   (load-theme 'spacemacs-dark t))
 
 (use-package doom-themes
-  :ensure t
+  :straight t
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
@@ -519,7 +518,7 @@
 
 ;; mode-line
 (use-package powerline
-  :ensure t
+  :straight t
   :disabled
   :config
   (powerline-default-theme))
@@ -527,32 +526,32 @@
 ;; XXX: hit M-x nerd-install-fonts
 ;; https://github.com/seagle0128/doom-modeline#install
 (use-package doom-modeline
-  :ensure t
+  :straight t
   :hook (after-init . doom-modeline-mode))
 
 ;; icon
 (use-package all-the-icons
-  :ensure t
+  :straight t
   :if (display-graphic-p))
 
 (use-package nerd-icons
-  :ensure t)
+  :straight t)
 
 (use-package vscode-icon
-  :ensure t)
+  :straight t)
 
 ;; ide settings
 
 ;; completion
 
 (use-package company
-  :ensure t
+  :straight t
   :init (global-company-mode)
   :config
-  (use-package company-bibtex :ensure t)
-  (use-package company-c-headers :ensure t)
-  (use-package company-reftex :ensure t)
-  (use-package company-flx :ensure t)
+  (use-package company-bibtex :straight t)
+  (use-package company-c-headers :straight t)
+  (use-package company-reftex :straight t)
+  (use-package company-flx :straight t)
   (define-key global-map (kbd "C-M-i") 'company-complete)
   (define-key company-active-map (kbd "C-n") 'company-select-next)
   (define-key company-active-map (kbd "C-p") 'company-select-previous)
@@ -577,22 +576,22 @@
 
 
 (use-package company-quickhelp
-  :ensure t
+  :straight t
   :init (company-quickhelp-mode)
   :after (company))
 
 (use-package company-box
-  :ensure t
+  :straight t
   :if (display-graphic-p)
   :after (company)
   :hook (company-mode . company-box-mode))
 
 ;; lsp
 (use-package eglot
-  :ensure t
-  :hook ( (python-mode . eglot-ensure)
-          (R-mode . eglot-ensure)
-          (c-mode . eglot-ensure)
+  :straight t
+  :hook ( (python-mode . eglot-straight)
+          (R-mode . eglot-straight)
+          (c-mode . eglot-straight)
         )
   :config
   (add-to-list 'eglot-server-programs
@@ -631,13 +630,13 @@ the children of class at point."
   )
 
 (use-package flycheck-eglot
-  :ensure t
+  :straight t
   :after (flycheck eglot)
   :config
   (global-flycheck-eglot-mode 1))
 
 (use-package lsp-mode
-  :ensure t
+  :straight t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   (setq lsp-keymap-prefix "C-c l")
@@ -655,21 +654,21 @@ the children of class at point."
   :commands lsp
   :config
   (use-package lsp-jedi
-    :ensure t)
+    :straight t)
   (use-package ccls
-    :ensure t))
+    :straight t))
 
 ;; optionally
-(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp)
-(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list :after lsp)
+(use-package lsp-ui :straight t :commands lsp-ui-mode :after lsp)
+(use-package lsp-treemacs :straight t :commands lsp-treemacs-errors-list :after lsp)
 
 ;; optionally if you want to use debugger
-(use-package dap-mode :ensure t :after lsp)
+(use-package dap-mode :straight t :after lsp)
 ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 ;; find definitions
 (use-package smart-jump
-  :ensure t
+  :straight t
   :init
   (smart-jump-setup-default-registers))
 
@@ -677,22 +676,22 @@ the children of class at point."
 (use-package flymake
   :config
   (use-package flymake-diagnostic-at-point
-    :ensure t
+    :straight t
     :after flymake
     :config
     (add-hook 'flymake-mode-hook #'flymake-diagnostic-at-point-mode))
-  (use-package flymake-python-pyflakes :ensure t)
-  (use-package flymake-shellcheck :ensure t))
+  (use-package flymake-python-pyflakes :straight t)
+  (use-package flymake-shellcheck :straight t))
 
 (use-package flycheck
-  :ensure t
+  :straight t
   :init
   (add-hook 'after-init-hook #'global-flycheck-mode)
   (add-hook 'flycheck-mode-hook #'flycheck-irony-setup)
   :config
-  (use-package flycheck-irony :ensure t)
-  (use-package flycheck-ocaml :ensure t)
-  (use-package flycheck-mypy :ensure t)
+  (use-package flycheck-irony :straight t)
+  (use-package flycheck-ocaml :straight t)
+  (use-package flycheck-mypy :straight t)
   (use-package flymake-shellcheck
     :commands flymake-shellcheck-load
     :init
@@ -700,14 +699,14 @@ the children of class at point."
 
   ;; (setq flymake-mode -1)
   (use-package flycheck-pos-tip
-    :ensure t
+    :straight t
     :if (display-graphic-p)
     :config
     (flycheck-pos-tip-mode)))
 
 ;; rainbow delimiters
 (use-package rainbow-delimiters
-  :ensure t
+  :straight t
   :init (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
   :config
   ;; color of parens
@@ -722,7 +721,7 @@ the children of class at point."
        (cl-callf color-saturate-name (face-foreground face) 30))))
   (add-hook 'emacs-startup-hook 'rainbow-delimiters-using-stronger-colors))
 
-(use-package ag :ensure t)
+(use-package ag :straight t)
 
 (defun my-filename-upto-parent ()
   "Move to parent directory like \"cd ..\" in find-file."
@@ -739,7 +738,7 @@ the children of class at point."
                                  #'delete)))))
 
 (use-package vertico
-  :ensure t
+  :straight t
   :bind (("C-l" . my-filename-upto-parent))
   :init
   (vertico-mode)
@@ -758,7 +757,7 @@ the children of class at point."
 
   (use-package marginalia
     :after (vertico)
-    :ensure t
+    :straight t
     :init
     (marginalia-mode))
 
@@ -769,7 +768,7 @@ the children of class at point."
   ;; Multiple files can be opened at once with `find-file' if you enter a
   ;; wildcard. You may also give the `initials' completion style a try.
   (use-package orderless
-    :ensure t
+    :straight t
     :init
     ;; Configure a custom style dispatcher (see the Consult wiki)
     ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
@@ -781,7 +780,7 @@ the children of class at point."
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
   (use-package savehist
     :after (vertico)
-    :ensure t
+    :straight t
     :init
     (savehist-mode))
 
@@ -809,7 +808,7 @@ the children of class at point."
 
   ;; Example configuration for Consult
   (use-package consult
-    :ensure t
+    :straight t
     :after (vertico)
     ;; Replace bindings. Lazily loaded due by `use-package'.
     :bind (;; C-c bindings in `mode-specific-map'
@@ -940,7 +939,7 @@ the children of class at point."
 ;; helm
 (use-package helm
   :disabled
-  :ensure t
+  :straight t
   :init
   (helm-mode)
   ;; (add-hook 'helm-mode-hook #'(lambda () (display-line-numbers-mode -1)))
@@ -956,7 +955,7 @@ the children of class at point."
   ("C-c y"   . helm-show-kill-ring)
   :config
   (use-package helm-swoop
-    :ensure t
+    :straight t
     :bind
     (:map helm-swoop-map
           ("C-r"     . helm-previous-line)
@@ -972,34 +971,34 @@ the children of class at point."
     (setq helm-swoop-split-direction 'split-window-vertically))
 
   (use-package helm-projectile
-    :ensure t
+    :straight t
     :after (projectile)
     :config
     (helm-projectile-on)
     (setq helm-projectile-fuzzy-match t))
 
   (use-package helm-lsp
-    :ensure t
+    :straight t
     :after (lsp)
     :commands helm-lsp-workspace-symbol)
 
   ;; Please install the_silver_searcher
   (use-package helm-ag
-    :ensure t
+    :straight t
     :bind
     ("C-x C-g" . helm-ag))
 
   (use-package helm-ls-git
-    :ensure t
+    :straight t
     :bind
     ("C-x C-d" . helm-browse-project)
     ("C-x r p" . helm-projects-history))
 
   (use-package helm-ls-hg
-    :ensure t)
+    :straight t)
 
   (use-package helm-tramp
-    :ensure t
+    :straight t
     :bind ("C-c s" . helm-tramp)
     :config
     (add-hook 'helm-tramp-pre-command-hook
@@ -1028,12 +1027,12 @@ the children of class at point."
   (define-key helm-find-files-map (kbd "TAB") 'helm-execute-persistent-action))
 
 (use-package imenu-anywhere
-  :ensure t
+  :straight t
   :bind
   ("C-." . imenu-anywhere))
 
 (use-package projectile
-  :ensure t
+  :straight t
   :bind (:map projectile-mode-map
               ("C-c p" . projectile-command-map)
               ("C-;" . projectile-command-map)
@@ -1044,7 +1043,7 @@ the children of class at point."
 
 ;; ace jump
 (use-package ace-jump-mode
-  :ensure t
+  :straight t
   :defer t
   :init
   (autoload 'ace-jump-mode "ace-jump-mode" nil t)
@@ -1052,17 +1051,17 @@ the children of class at point."
 
 ;; gist
 (use-package gist
-  :ensure t
+  :straight t
   :disabled t)
 
 ;; yasnippet
 (use-package yasnippet
-  :ensure t
+  :straight t
   :defer t
   :init (yas-global-mode)
   :config
   (use-package yasnippet-snippets
-    :ensure t))
+    :straight t))
 
 (global-unset-key (kbd "C-z"))
 
@@ -1093,7 +1092,7 @@ the children of class at point."
 
 (use-package elscreen
   :disabled
-  :ensure t
+  :straight t
   :if (eq system-type 'darwin)
   :init (elscreen-start)
   :config
@@ -1103,7 +1102,7 @@ the children of class at point."
 
 ;; Magit
 (use-package magit
-  :ensure t
+  :straight t
   :defer t
   :pin "melpa-stable"
   :init
@@ -1129,7 +1128,7 @@ the children of class at point."
 
 ;; for mercurial
 (use-package monky
-  :ensure t
+  :straight t
   :defer t
   :commands monky-status
   :config
@@ -1137,12 +1136,12 @@ the children of class at point."
 
 ;; for mercurial
 (use-package ahg
-  :ensure t
+  :straight t
   :defer t)
 
 ;; Git gutter
 (use-package git-gutter
-  :ensure t
+  :straight t
   :defer t
   :custom
   (git-gutter:ask-p nil)
@@ -1158,7 +1157,7 @@ the children of class at point."
       (git-gutter:popup-hunk))))
 
 (use-package which-key
-  :ensure t
+  :straight t
   :config
   (which-key-setup-minibuffer)
   (setq which-key-idle-secondary-delay 0))
@@ -1194,11 +1193,11 @@ the children of class at point."
 ;; sml
 
 (use-package sml-mode
-  :ensure t)
+  :straight t)
 
 ;; ocaml
 (use-package tuareg
-  :ensure t
+  :straight t
   :init
   (add-hook 'tuareg-mode-hook #'merlin-mode)
   ;; (add-hook 'tuareg-mode-hook #'merlin-eldoc-setup)
@@ -1210,17 +1209,17 @@ the children of class at point."
   (setq tuareg-highlight-all-operators t))
 
 (use-package ocp-indent
-  :ensure t
+  :straight t
   :after (tuareg)
   :config
   (add-to-list 'tuareg-mode-hook 'ocp-setup-indent))
 
 (use-package dune
-  :ensure t)
+  :straight t)
 
 (use-package merlin
   ;; :disabled ;; enable when lsp-ocaml is disabled
-  :ensure t
+  :straight t
   :after (tuareg)
   :config
   ;; Disable Merlin's own error checking
@@ -1229,29 +1228,29 @@ the children of class at point."
   (flycheck-ocaml-setup)
 
   (use-package merlin-company
-    :ensure t
+    :straight t
     :config
     (add-to-list 'company-backends #'merlin-company-backend)))
 
 (use-package merlin-eldoc
-  :ensure t
+  :straight t
   :after (merlin))
 
 (use-package utop
-  :ensure t
+  :straight t
   :config
   (setq utop-command "opam config exec -- utop -emacs"))
 
 (use-package ocamlformat
-  :ensure t
+  :straight t
   :after (tuareg))
 
 ;; Proof General
-(use-package proof-general :ensure t :disabled)
+(use-package proof-general :straight t :disabled)
 
 ;; LaTeX
 (use-package pdf-tools
-  :ensure t
+  :straight t
   :if (eq system-type 'gnu/linux)
   :mode ("\\.pdf\\'" . pdf-tools-install)
   :bind ("C-c C-g" . pdf-sync-forward-search)
@@ -1265,7 +1264,7 @@ the children of class at point."
   (setq pdf-view-resize-factor 1.10))
 
 (use-package languagetool
-  :ensure t
+  :straight t
   :config
   (global-set-key (kbd "C-c l c") 'languagetool-check)
   (global-set-key (kbd "C-c l d") 'languagetool-clear-buffer)
@@ -1359,25 +1358,25 @@ the children of class at point."
     (setq reftex-plug-into-AUCTeX t))
 
   (use-package auctex-cont-latexmk
-    :ensure t
+    :straight t
     :bind
     (:map LaTeX-mode-map
           ("C-c k" . auctex-cont-latexmk-toggle))))
 
 ;; lua
 (use-package lua-mode
-  :ensure t
+  :straight t
   :defer t)
 
 ;; scala
 ;; Enable scala-mode and sbt-mode
 (use-package scala-mode
-  :ensure t
+  :straight t
   :mode "\\.s\\(cala\\|bt\\)$")
 
 (use-package sbt-mode
   :commands sbt-start sbt-command
-  :ensure t
+  :straight t
   :config
   ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
   ;; allows using SPACE when in the minibuffer
@@ -1389,9 +1388,9 @@ the children of class at point."
   (setq sbt:program-options '("-Dsbt.supershell=false")))
 
 ;; Java build tool
-(use-package gradle-mode :ensure t
+(use-package gradle-mode :straight t
   :config
-  (use-package groovy-mode :ensure t))
+  (use-package groovy-mode :straight t))
 
 ;; Java CUP
 (use-package cup-java-mode
@@ -1408,33 +1407,33 @@ the children of class at point."
   (setq nxml-attribute-indent 2)
   (setq nxml-slash-auto-complete-flag t))
 
-(use-package flycheck-gradle :ensure t)
+(use-package flycheck-gradle :straight t)
 
 ;; JavaScript
 (use-package js2-mode
-  :ensure t
+  :straight t
   :mode "\\.js\\$")
 
 (use-package peg
-  :ensure t
+  :straight t
   :mode "\\.(pegjs|peg)\\$")
 
 ;; Typescript
 (use-package typescript-mode
-  :ensure t)
+  :straight t)
 
 ;; haskell
 (use-package haskell-mode
-  :ensure t
+  :straight t
   :defer t)
 
 ;; gnuplot
 (use-package gnuplot
-  :ensure t
+  :straight t
   :init (add-to-list 'auto-mode-alist '("\\.plot" . gnuplot-mode)))
 
 ;; PHP
-(use-package php-mode :ensure t)
+(use-package php-mode :straight t)
 
 ;; Python
 (use-package python
@@ -1458,7 +1457,7 @@ the children of class at point."
       (py-execute-buffer))))
 
 (use-package ein
-  :ensure t
+  :straight t
   :config
   (setq ein:worksheet-enable-undo t)
 )
@@ -1469,29 +1468,29 @@ the children of class at point."
   :mode "\\.log\\.txt$")
 
 (use-package python-black
-  :ensure t
+  :straight t
   :demand t
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 (use-package jupyter
-  :ensure t)
+  :straight t)
 
 ;; R
 (use-package ess
-  :ensure t)
+  :straight t)
 
 (use-package ess-view
-  :ensure t
+  :straight t
   :after (ess))
 
 (use-package ess-R-data-view
-  :ensure t
+  :straight t
   :after (ess))
 
 ;; smalltalk
 (use-package smalltalk-mode
-  :ensure t
+  :straight t
   :mode ("\.som$" . smalltalk-mode)
   )
 
@@ -1499,11 +1498,11 @@ the children of class at point."
 ;;   :mode "\\.som$")
 
 ;; html
-(use-package htmlize :ensure t)
+(use-package htmlize :straight t)
 
 ;; markdown
 (use-package markdown-mode
-  :ensure t
+  :straight t
   :config
   ;; pandoc
   (setq markdown-command
@@ -1515,13 +1514,13 @@ the children of class at point."
 
 ;; YAML
 (use-package yaml-mode
-  :ensure t
+  :straight t
   :config
   (use-package yaml-imenu
-    :ensure t))
+    :straight t))
 
 (use-package org
-  :ensure t
+  :straight t
   :defer t
   :bind (("C-c C-q" . org-capture)
          ("C-c C-l" . org-store-link))
@@ -1577,17 +1576,17 @@ the children of class at point."
   (setq org-latex-default-class "ltjsarticle")
 
   (use-package org-appear
-    :ensure t
+    :straight t
     :config
     (add-hook 'org-mode-hook 'org-appear-mode))
 
   (use-package org-bullets
-    :ensure t
+    :straight t
     :config
     (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
 
   (use-package org-pomodoro
-    :ensure t
+    :straight t
     :defer t
     :after (org)
     :custom
@@ -1610,11 +1609,11 @@ the children of class at point."
     :bind (:map org-agenda-mode-map
                 ("p" . org-pomodoro))))
 
-(use-package open-junk-file :ensure t)
+(use-package open-junk-file :straight t)
 
 ;; Hightlight TODO
 (use-package hl-todo
-  :ensure t
+  :straight t
   :defer ti
   :hook ((prog-mode . hl-todo-mode)
          (LaTeX-mode . hl-todo-mode))
