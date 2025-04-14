@@ -648,7 +648,12 @@ the children of class at point."
   (use-package lsp-jedi
     :ensure t)
   (use-package ccls
-    :ensure t))
+    :ensure t)
+  (use-package lsp-julia
+    :ensure t
+    :config
+    (setq lsp-julia-default-environment "~/.julia/environments/v1.11")
+    ))
 
 ;; optionally
 (use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp)
@@ -1164,6 +1169,10 @@ the children of class at point."
 ;;;;; Infra
 
 ;;;;; Language
+
+;; julia
+(use-package julia-mode
+  :ensure t)
 
 ;; c
 (use-package cc-mode
