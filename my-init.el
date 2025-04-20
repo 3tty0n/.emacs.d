@@ -18,7 +18,6 @@
 (use-package bind-key :ensure t)
 (use-package diminish :ensure t)
 
-
 (use-package package-utils :ensure t)
 
 (unless (display-graphic-p)
@@ -1163,8 +1162,7 @@ the children of class at point."
 ;;; Web
 
 ;; E-mail
-;; (use-package my-mu4e :load-path "~/.mu4e.d")
-(load "~/.mu4e.d/my-mu4e.el")
+(use-package my-mu4e :load-path "~/.mu4e.d")
 
 ;;;;; Infra
 
@@ -1252,7 +1250,7 @@ the children of class at point."
 ;; LaTeX
 (use-package pdf-tools
   :ensure t
-  :if (eq system-type 'gnu/linux)
+  ;; :if (eq system-type 'gnu/linux)
   :mode ("\\.pdf\\'" . pdf-tools-install)
   :bind ("C-c C-g" . pdf-sync-forward-search)
   :defer t
