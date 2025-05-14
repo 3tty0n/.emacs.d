@@ -632,11 +632,12 @@ the children of class at point."
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (LaTeX-mode . lsp-deferred)
-         (rust-mode  . lsp-deferred)
+         (LaTeX-mode      . lsp-deferred)
+         (rust-mode       . lsp-deferred)
          (typescript-mode . lsp-deferred)
-         (tuareg-mode . lsp-deferred)
-         (js-mode . lsp-deferred)
+         (tuareg-mode     . lsp-deferred)
+         (js-mode         . lsp-deferred)
+         (racket-mode     . lsp-deferred)
          ;; (c-mode . lsp-deferred)
          ;; (python-mode . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
@@ -1486,6 +1487,10 @@ the children of class at point."
 (use-package ess-R-data-view
   :ensure t
   :after (ess))
+
+;; racket
+(use-package racket-mode
+  :ensure t)
 
 ;; smalltalk
 (use-package smalltalk-mode
