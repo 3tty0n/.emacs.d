@@ -16,8 +16,7 @@
 
 (with-system darwin
   (if (display-graphic-p)
-      (set-face-attribute 'default nil
-                          :family "Fira Code" :height 150 :weight "Retina")))
+      (set-frame-font "Fira Code Retina-14" nil t)))
 
 (provide 'my-font)
 ;;; my-font.el ends here
