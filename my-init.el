@@ -580,7 +580,7 @@
 ;; lsp
 (use-package eglot
   :ensure t
-  :hook ( (python-mode . eglot-ensure)
+  :hook ( ;; (python-mode . eglot-ensure)
           (R-mode . eglot-ensure)
           (c-mode . eglot-ensure)
         )
@@ -639,12 +639,18 @@ the children of class at point."
          (js-mode         . lsp-deferred)
          (racket-mode     . lsp-deferred)
          ;; (c-mode . lsp-deferred)
-         ;; (python-mode . lsp-deferred)
+         (python-mode     . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
   :config
+  (use-package lsp-pyright
+    :ensure t
+    :custom (lsp-pyright-langserver-command "pyright") ;; or basedpyright
+    :hook (python-mode . (lambda ()
+                           (require 'lsp-pyright)
+                           (lsp))))  ; or lsp-deferred
   (use-package lsp-jedi
     :ensure t)
   (use-package ccls
@@ -1197,6 +1203,7 @@ the children of class at point."
 
 ;; ocaml
 (use-package tuareg
+  :disabled
   :ensure t
   :init
   (add-hook 'tuareg-mode-hook #'merlin-mode)
@@ -1209,6 +1216,7 @@ the children of class at point."
   (setq tuareg-highlight-all-operators t))
 
 (use-package ocp-indent
+  :disabled
   :ensure t
   :after (tuareg)
   :config
@@ -1218,7 +1226,7 @@ the children of class at point."
   :ensure t)
 
 (use-package merlin
-  ;; :disabled ;; enable when lsp-ocaml is disabled
+  :disabled ;; enable when lsp-ocaml is disabled
   :ensure t
   :after (tuareg)
   :config
