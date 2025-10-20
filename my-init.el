@@ -583,10 +583,11 @@
   :hook ( ;; (python-mode . eglot-ensure)
           (R-mode . eglot-ensure)
           (c-mode . eglot-ensure)
+          ;; (LaTeX-mode . eglot-ensure)
         )
   :config
-  (add-to-list 'eglot-server-programs
-               '(tex-mode "texlab"))
+  ;; (add-to-list 'eglot-server-programs
+  ;;              '(tex-mode "texlab"))
   (add-to-list 'eglot-server-programs
                '(c-mode "ccls"))
 
@@ -1174,6 +1175,10 @@ the children of class at point."
 ;;;;; Infra
 
 ;;;;; Language
+
+;; racket
+(use-package racket-mode
+  :ensure t)
 
 ;; julia
 (use-package julia-mode
