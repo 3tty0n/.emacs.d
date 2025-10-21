@@ -558,10 +558,8 @@
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
 
-(use-package company-anywhare
-  :ensure nil
-  :load-path "site-lisp/company-anywhare")
-
+(use-package company-dwim
+  :ensure (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
 
 (use-package company-quickhelp
   :ensure t
