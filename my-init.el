@@ -1,14 +1,23 @@
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
-;; and `package-pinned-packages`. Most users will not need or want to do this.
-(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(setq package-enable-at-startup nil)
 
-;; Enable package-quickstart for faster loading
-;; Run M-x package-quickstart-refresh after installing new packages
-(setq package-quickstart t)
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(package-initialize)
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 (setq byte-compile-warnings '(cl-functions))
 
@@ -266,8 +275,8 @@
 
 
 (setq inhibit-startup-message t) ; 起動メッセージを非表示
-(tool-bar-mode -1) ; ツールバーを非表示
-(menu-bar-mode -1) ; メニューバーを非表示
+(tool-bar-mode -1)
+(menu-bar-mode -1)
 
 ;; set C-h to backspace
 (global-set-key (kbd "C-h") 'backward-char)
@@ -281,10 +290,12 @@
   (setq highlight-indent-guides-method 'character))
 
 ;; font config
-(use-package my-font :ensure nil :load-path "site-lisp/my-font")
+;; (use-package my-font :ensure nil :load-path "site-lisp/my-font")
+(load-file "~/.emacs.d/site-lisp/my-font.el")
 
 ;; utilities
-(use-package my-util :ensure nil :load-path "site-lisp/my-util")
+;; (use-package my-util :ensure nil :load-path "site-lisp/my-util")
+(load-file "~/.emacs.d/site-lisp/my-util.el")
 
 ;; toggle truncate lines
 (global-set-key (kbd "C-c t") 'toggle-truncate-lines)
@@ -453,7 +464,7 @@
   (setq skk-user-directory "~/.ddskk")
   (setq default-input-method "japanese-skk")
   (setq skk-preload t)
-  (setq skk-byte-compile-init-file t)
+  ;; (setq skk-byte-compile-init-file t)
 
   (setq skk-show-candidates-always-pop-to-buffer t) ; 変換候補の表示位置
 
@@ -472,16 +483,16 @@
   (setq skk-henkan-strict-okuri-precedence t)
 
   ;; 動的補完の複数表示群のフェイス
-  ;; (set-face-foreground 'skk-dcomp-multiple-face "Black")
-  ;; (set-face-background 'skk-dcomp-multiple-face "LightGoldenrodYellow")
-  ;; (set-face-bold-p 'skk-dcomp-multiple-face nil)
+  (set-face-foreground 'skk-dcomp-multiple-face "Black")
+  (set-face-background 'skk-dcomp-multiple-face "LightGoldenrodYellow")
+  (set-face-bold-p 'skk-dcomp-multiple-face nil)
   ;; 動的補完の複数表示郡の補完部分のフェイス
-  ;; (set-face-foreground 'skk-dcomp-multiple-trailing-face "dim gray")
-  ;; (set-face-bold-p 'skk-dcomp-multiple-trailing-face nil)
+  (set-face-foreground 'skk-dcomp-multiple-trailing-face "dim gray")
+  (set-face-bold-p 'skk-dcomp-multiple-trailing-face nil)
   ;; 動的補完の複数表示郡の選択対象のフェイス
-  ;; (set-face-foreground 'skk-dcomp-multiple-selected-face "White")
-  ;; (set-face-background 'skk-dcomp-multiple-selected-face "LightGoldenrod4")
-  ;; (set-face-bold-p 'skk-dcomp-multiple-selected-face nil)
+  (set-face-foreground 'skk-dcomp-multiple-selected-face "White")
+  (set-face-background 'skk-dcomp-multiple-selected-face "LightGoldenrod4")
+  (set-face-bold-p 'skk-dcomp-multiple-selected-face nil)
   ;; 動的補完時に下で次の補完へ
   (define-key skk-j-mode-map (kbd "<down>") 'skk-completion-wrapper))
 
@@ -564,8 +575,13 @@
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
 
-(use-package company-dwim
-  :ensure (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
+;;(use-package company-dwim
+;;  :ensure (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
+
+;;(use-package company-anywhare
+;;  :ensure nil
+;;  :load-path "site-lisp/company-anywhare")
+
 
 (use-package company-quickhelp
   :ensure t
@@ -641,13 +657,17 @@ the children of class at point."
          (tuareg-mode     . lsp-deferred)
          (js-mode         . lsp-deferred)
          (racket-mode     . lsp-deferred)
+         ;; (julia-mode      . lsp-deferred)
          ;; (c-mode . lsp-deferred)
-         ;; (python-mode     . lsp-deferred)
+         (python-mode     . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
   :config
+  ;; remove header line
+  (setq lsp-headerline-breadcrumb-enable nil)
+
   (use-package lsp-pyright
     :ensure t
     :custom (lsp-pyright-langserver-command "pyright") ;; or basedpyright
@@ -665,7 +685,10 @@ the children of class at point."
     ))
 
 ;; optionally
-(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp)
+(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp
+  :config
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
 (use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list :after lsp)
 
 ;; optionally if you want to use debugger
@@ -692,8 +715,11 @@ the children of class at point."
 
 (use-package flycheck
   :ensure t
-  :hook ((after-init . global-flycheck-mode)
-         (flycheck-mode . flycheck-irony-setup))
+  :init
+  (add-hook 'after-init-hook #'global-flycheck-mode)
+  (add-hook 'flycheck-mode-hook #'flycheck-irony-setup)
+  :init
+  ;; (add-hook 'after-init-hook #'global-flycheck-mode)
   :config
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
@@ -1105,7 +1131,7 @@ the children of class at point."
 (use-package magit
   :ensure t
   :defer t
-  :pin "melpa-stable"
+  ;; :pin "melpa-stable"
   :init
   (global-set-key (kbd "C-x g") 'magit)
   :config
@@ -1166,7 +1192,7 @@ the children of class at point."
 ;;; Web
 
 ;; E-mail
-(use-package my-mu4e :load-path "~/.mu4e.d")
+;; (use-package my-mu4e :load-path "~/.mu4e.d")
 
 ;;;;; Infra
 
@@ -1219,6 +1245,7 @@ the children of class at point."
 (use-package ocp-indent
   :disabled
   :ensure t
+  :disabled
   :after (tuareg)
   :config
   (add-to-list 'tuareg-mode-hook 'ocp-setup-indent))
@@ -1242,6 +1269,7 @@ the children of class at point."
     (add-to-list 'company-backends #'merlin-company-backend)))
 
 (use-package merlin-eldoc
+  :disabled
   :ensure t
   :after (merlin))
 
@@ -1285,8 +1313,8 @@ the children of class at point."
         languagetool-console-command "~/.languagetool/languagetool-commandline.jar"
         languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
-(use-package tex
-  :ensure auctex
+(use-package auctex
+  :ensure t
   :mode ("\\.tex\\'" . LaTeX-mode)
   :config
   (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
@@ -1351,6 +1379,10 @@ the children of class at point."
     (auctex-latexmk-setup)
     (setq shell-escape-mode t))
 
+  (use-package company-auctex
+    :ensure (:type git :host github :repo "alexeyr/company-auctex")
+    :init
+    (company-auctex-init))
 
   (use-package reftex
     :ensure nil
@@ -1399,6 +1431,7 @@ the children of class at point."
 
 ;; Java CUP
 (use-package cup-java-mode
+  :disabled
   :ensure nil
   :load-path "site-lisp/cup-java"
   :mode "\\.cup$")
@@ -1468,6 +1501,7 @@ the children of class at point."
 )
 
 (use-package pypytrace-mode
+  :disabled
   :ensure nil
   :defer t
   :mode "\\.log\\.txt$")
@@ -1520,6 +1554,10 @@ the children of class at point."
        " --from=markdown --to=html"
        " --standalone --mathjax --highlight-style=pygments"))
   )
+
+;; csv
+(use-package csv-mode
+  :ensure t)
 
 ;; YAML
 (use-package yaml-mode
@@ -1619,6 +1657,20 @@ the children of class at point."
                 ("p" . org-pomodoro))))
 
 (use-package open-junk-file :ensure t)
+
+;; AI agent
+(use-package eat :ensure t :config
+  (setq eat-term-scrollback-size 400000))
+
+(straight-use-package
+ '(claudemacs :type git :host github :repo "cpoile/claudemacs"))
+
+(define-key prog-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
+(define-key emacs-lisp-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
+(define-key text-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
+(define-key python-base-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
+
+;; Set a big buffer so we can search our history.
 
 ;; Hightlight TODO
 (use-package hl-todo
