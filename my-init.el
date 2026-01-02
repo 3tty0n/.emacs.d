@@ -558,9 +558,6 @@
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
 
-(use-package company-dwim
-  :ensure (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
-
 (use-package company-anywhare
   :ensure nil
   :load-path "site-lisp/company-anywhare")
@@ -1355,10 +1352,6 @@ the children of class at point."
     (auctex-latexmk-setup)
     (setq shell-escape-mode t))
 
-  (use-package company-auctex
-    :ensure (:type git :host github :repo "alexeyr/company-auctex")
-    :init
-    (company-auctex-init))
 
   (use-package reftex
     :ensure nil
