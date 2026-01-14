@@ -11,7 +11,7 @@
 
 (with-system gnu/linux
   (progn
-    (add-to-list 'default-frame-alist '(font . "JetBrains Mono Medium-11"))
+    (set-frame-font "JetBrains Mono Medium 12" nil t)
     (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))))
 
 (with-system darwin

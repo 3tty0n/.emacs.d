@@ -637,7 +637,7 @@ the children of class at point."
          (js-mode         . lsp-deferred)
          (racket-mode     . lsp-deferred)
          ;; (c-mode . lsp-deferred)
-         (python-mode     . lsp-deferred)
+         ;; (python-mode     . lsp-deferred)
          ;; (tuareg-mode . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
