@@ -12,6 +12,7 @@
 (with-system gnu/linux
   (progn
     (set-frame-font "JetBrains Mono Medium 12" nil t)
+    ;; (add-to-list 'default-frame-alist '(font . "Fira Code-10"))
     (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))))
 
 (with-system darwin

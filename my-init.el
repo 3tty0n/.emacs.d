@@ -1,10 +1,13 @@
-(setq gc-cons-threshold (* 100 1024 1024))
-
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
 ;; and `package-pinned-packages`. Most users will not need or want to do this.
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
+;; Enable package-quickstart for faster loading
+;; Run M-x package-quickstart-refresh after installing new packages
+(setq package-quickstart t)
+
 (package-initialize)
 
 (setq byte-compile-warnings '(cl-functions))
@@ -25,16 +28,19 @@
    (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
    (global-set-key (kbd "<mouse-5>") 'scroll-up-line))
 
-;; path
+;; path - defer to after-init for faster startup
 (use-package exec-path-from-shell
   :ensure t
   :if (memq window-system '(mac ns x))
-  :init (exec-path-from-shell-initialize))
+  :hook (after-init . exec-path-from-shell-initialize))
 
+;; Defer server start to after-init for faster startup
 (when window-system
-  (require 'server)
-  (unless (eq (server-running-p) 't)
-    (server-start)))
+  (add-hook 'after-init-hook
+            (lambda ()
+              (require 'server)
+              (unless (eq (server-running-p) 't)
+                (server-start)))))
 
 (use-package restart-emacs :ensure t)
 
@@ -45,15 +51,16 @@
   :pin melpa
   :commands (esup))
 
-;; initial window
+;; initial window - defer icon loading for faster startup
 (use-package dashboard
   :ensure t
   :config
   (setq dashboard-items '((recents   . 10)
                           (projects  . 10)
                           (bookmarks . 10)))
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
+  ;; Defer icon loading - set to nil for faster startup, enable if desired
+  (setq dashboard-set-heading-icons nil)
+  (setq dashboard-set-file-icons nil)
   (setq dashboard-set-navigator t)
   (dashboard-setup-startup-hook))
 
@@ -82,8 +89,7 @@
 (setq-default tab-width 4)
 
 (use-package whitespace
-  :init
-  (global-whitespace-mode 1)
+  :hook (after-init . global-whitespace-mode)
   :config
   (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
   (setq whitespace-space-regexp "\\(\u3000+\\)")
@@ -181,6 +187,7 @@
 
 (use-package vterm
   :ensure t
+  :disabled
   :init
   (add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
   :bind
@@ -220,8 +227,7 @@
 ;; smartparens
 (use-package smartparens
   :ensure t
-  :init
-  (smartparens-global-mode)
+  :hook (after-init . smartparens-global-mode)
   :config
   ;; (sp-pair "'" "'" :actions nil)
   (sp-pair "`" "`" :actions nil))
@@ -291,7 +297,7 @@
 ;; undo tree
 (use-package undo-tree
   :ensure t
-  :init (global-undo-tree-mode)
+  :hook (after-init . global-undo-tree-mode)
   :config
   (setq undo-tree-enable-undo-in-region nil)
   (setq undo-tree-auto-save-history nil))
@@ -398,6 +404,7 @@
 ;;   :ensure t)
 
 (use-package treemacs-projectile
+  :disabled
   :after (treemacs projectile)
   :ensure t)
 
@@ -499,13 +506,12 @@
   (doom-themes-enable-bold t)
   :config
   (load-theme 'doom-city-lights t)
-
-  ;; (load-theme 'doom-one t)
-  ;; (load-theme 'doom-peacock t)
-  ;; (doom-themes-neotree-config)
-  (setq doom-themes-treemacs-theme "doom-colors")
-  (doom-themes-treemacs-config)
-  (doom-themes-org-config))
+  ;; Defer treemacs and org config until those packages are loaded
+  (with-eval-after-load 'treemacs
+    (setq doom-themes-treemacs-theme "doom-colors")
+    (doom-themes-treemacs-config))
+  (with-eval-after-load 'org
+    (doom-themes-org-config)))
 
 ;; mode-line
 (use-package powerline
@@ -537,7 +543,7 @@
 
 (use-package company
   :ensure t
-  :init (global-company-mode)
+  :hook (after-init . global-company-mode)
   :config
   (use-package company-bibtex :ensure t)
   (use-package company-c-headers :ensure t)
@@ -563,8 +569,8 @@
 
 (use-package company-quickhelp
   :ensure t
-  :init (company-quickhelp-mode)
-  :after (company))
+  :after (company)
+  :config (company-quickhelp-mode))
 
 (use-package company-box
   :ensure t
@@ -575,14 +581,14 @@
 ;; lsp
 (use-package eglot
   :ensure t
-  :hook ( ;; (python-mode . eglot-ensure)
+  :hook ( (python-mode . eglot-ensure)
           (R-mode . eglot-ensure)
           (c-mode . eglot-ensure)
-          ;; (LaTeX-mode . eglot-ensure)
+          (LaTeX-mode . eglot-ensure)
         )
   :config
-  ;; (add-to-list 'eglot-server-programs
-  ;;              '(tex-mode "texlab"))
+  (add-to-list 'eglot-server-programs
+               '(tex-mode "texlab"))
   (add-to-list 'eglot-server-programs
                '(c-mode "ccls"))
 
@@ -623,6 +629,7 @@ the children of class at point."
   (global-flycheck-eglot-mode 1))
 
 (use-package lsp-mode
+  :disabled
   :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
@@ -668,7 +675,8 @@ the children of class at point."
 ;; find definitions
 (use-package smart-jump
   :ensure t
-  :init
+  :defer 1
+  :config
   (smart-jump-setup-default-registers))
 
 ;; syntax check
@@ -684,9 +692,8 @@ the children of class at point."
 
 (use-package flycheck
   :ensure t
-  :init
-  (add-hook 'after-init-hook #'global-flycheck-mode)
-  (add-hook 'flycheck-mode-hook #'flycheck-irony-setup)
+  :hook ((after-init . global-flycheck-mode)
+         (flycheck-mode . flycheck-irony-setup))
   :config
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
@@ -706,7 +713,7 @@ the children of class at point."
 ;; rainbow delimiters
 (use-package rainbow-delimiters
   :ensure t
-  :init (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+  :hook (prog-mode . rainbow-delimiters-mode)
   :config
   ;; color of parens
   (use-package cl-lib)
@@ -739,20 +746,17 @@ the children of class at point."
 (use-package vertico
   :ensure t
   :bind (("C-l" . my-filename-upto-parent))
-  :init
-  (vertico-mode)
-
+  :hook (after-init . vertico-mode)
+  :custom
   ;; Different scroll margin
-  (setq vertico-scroll-margin 0)
-
+  (vertico-scroll-margin 0)
   ;; Show more candidates
-  (setq vertico-count 30)
-
+  (vertico-count 30)
   ;; Grow and shrink the Vertico minibuffer
-  (setq vertico-resize t)
-
+  (vertico-resize t)
   ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
-  (setq vertico-cycle t)
+  (vertico-cycle t)
+  :config
 
   (use-package marginalia
     :after (vertico)
@@ -1036,9 +1040,9 @@ the children of class at point."
               ("C-c p" . projectile-command-map)
               ("C-;" . projectile-command-map)
               ("s-;" . projectile-command-map))
+  :hook (after-init . projectile-mode)
   :config
-  ;; (setq projectile-switch-project-action #'projectile-dired)
-  :init (projectile-mode))
+  (setq projectile-switch-project-action #'projectile-dired))
 
 ;; ace jump
 (use-package ace-jump-mode
@@ -1056,8 +1060,7 @@ the children of class at point."
 ;; yasnippet
 (use-package yasnippet
   :ensure t
-  :defer t
-  :init (yas-global-mode)
+  :hook (after-init . yas-global-mode)
   :config
   (use-package yasnippet-snippets
     :ensure t))
@@ -1083,11 +1086,10 @@ the children of class at point."
          ("C-z C-n" . tab-next)
          ("C-<tab>" . tab-next)
          ("C-z C-p" . tab-previous))
+  :hook (after-init . tab-bar-mode)
   :config
   (setq tab-bar-new-tab-choice "*scratch*")
-  (setq xterm-mouse-mode t)
-  :init
-  (tab-bar-mode))
+  (setq xterm-mouse-mode t))
 
 (use-package elscreen
   :disabled
@@ -1145,8 +1147,7 @@ the children of class at point."
   :custom
   (git-gutter:ask-p nil)
   (git-gutter:handled-backends '(git hg svn))
-  :init
-  (global-git-gutter-mode)
+  :hook (after-init . global-git-gutter-mode)
   :config
   (defun git-gutter:toggle-popup-hunk ()
     "Toggle git-gutter hunk window."
@@ -1638,6 +1639,40 @@ the children of class at point."
           ("DEBUG"  . "#A020F0")
           ("GOTCHA" . "#FF4500")
           ("STUB"   . "#1E90FF"))))
+
+;; AI
+
+(use-package monet
+  :vc (:url "https://github.com/stevemolitor/monet" :rev :newest))
+
+;; install required inheritenv dependency:
+(use-package inheritenv
+  :vc (:url "https://github.com/purcell/inheritenv" :rev :newest))
+
+;; for eat terminal backend:
+(use-package eat :ensure t :config
+  (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
+
+;; install claude-code.el
+(use-package claude-code :ensure t
+  :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
+  :config
+  ;; optional IDE integration with Monet
+  (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
+  (monet-mode 1)
+
+  (claude-code-mode)
+  :bind-keymap ("C-c c" . claude-code-command-map)
+
+  ;; Optionally define a repeat map so that "M" will cycle thru Claude auto-accept/plan/confirm modes after invoking claude-code-cycle-mode / C-c M.
+  :bind
+  (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
+
+(use-package claude-code-ide
+  :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
+  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
+  :config
+  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
 
 ;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
 ;; ## end of OPAM user-setup addition for emacs / base ## keep this line

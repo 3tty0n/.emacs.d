@@ -2,7 +2,7 @@ EMACS := emacs
 USER_EMACS_DIR := ~/.emacs.d
 LDFLAGS := -L site-lisp/ -L elpa/
 
-ELISPS :=  init.el my-init.el
+ELISPS :=  early-init.el init.el my-init.el
 ELCS := $(ELISPS:.el=.elc)
 SUBDIRS := site-lisp/
 
