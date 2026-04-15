@@ -38,8 +38,6 @@
   (interactive "Alpha: ")
   (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
 
-(set-alpha 97)
-
 ;; window size
 (defun set-frame-size-according-to-resolution ()
   "Adjusting the preferred width and resolutions."
@@ -60,7 +58,10 @@
                      (cons 'height (/ (- (x-display-pixel-height) 500)
                                       (frame-char-height)))))))
 
-(set-frame-size-according-to-resolution)
+(add-hook 'window-setup-hook
+          (lambda ()
+            (set-alpha 97)
+            (set-frame-size-according-to-resolution)))
 
 (defun back-to-indentation-or-beginning ()
   (interactive)

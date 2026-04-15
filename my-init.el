@@ -17,7 +17,9 @@
   (load bootstrap-file nil 'nomessage))
 
 (straight-use-package 'use-package)
-(setq straight-use-package-by-default t)
+(setq straight-use-package-by-default t
+      ;; Faster startup than the default git-based checks (still safe for normal use).
+      straight-check-for-modifications '(find-when-checking))
 
 (setq byte-compile-warnings '(cl-functions))
 
@@ -30,7 +32,9 @@
 (use-package bind-key :ensure t)
 (use-package diminish :ensure t)
 
-(use-package package-utils :ensure t)
+(use-package package-utils
+  :ensure t
+  :defer t)
 
 (unless (display-graphic-p)
   (xterm-mouse-mode 1)
@@ -121,12 +125,12 @@
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
 (use-package fill-column-indicator
   :ensure t
+  :hook (prog-mode . fci-mode)
   :config
   (setq-default fill-column 80)
   (setq fci-rule-column 80)
   (setq fci-rule-width 1)
-  (setq fci-rule-color "darkgray")
-  (add-hook 'prog-mode-hook 'fci-mode))
+  (setq fci-rule-color "darkgray"))
 
 (use-package visual-fill-column
   :ensure t
@@ -429,15 +433,18 @@
   )
 
 (use-package treemacs-magit
+  :disabled
   :after (treemacs magit)
   :ensure t)
 
 (use-package treemacs-persp ;;treemacs-perspective if you use perspective.el vs. persp-mode
+  :disabled
   :after (treemacs persp-mode) ;;or perspective vs. persp-mode
   :ensure t
   :config (treemacs-set-scope-type 'Perspectives))
 
 (use-package treemacs-tab-bar ;;treemacs-tab-bar if you use tab-bar-mode
+  :disabled
   :after (treemacs)
   :ensure t
   :config (treemacs-set-scope-type 'Tabs))
@@ -496,9 +503,10 @@
   ;; 動的補完時に下で次の補完へ
   (define-key skk-j-mode-map (kbd "<down>") 'skk-completion-wrapper))
 
-;; evil-mode
+;; evil-mode (never enabled here; defer so it is not loaded unless something needs it)
 (use-package evil
   :ensure t
+  :defer t
   :config
   (setq evil-disable-insert-state-bindings t))
 
@@ -535,6 +543,7 @@
 ;; https://github.com/seagle0128/doom-modeline#install
 (use-package doom-modeline
   :ensure t
+  :defer t
   :hook (after-init . doom-modeline-mode))
 
 ;; icon
@@ -543,10 +552,8 @@
   :if (display-graphic-p))
 
 (use-package nerd-icons
-  :ensure t)
-
-(use-package vscode-icon
-  :ensure t)
+  :ensure t
+  :if (display-graphic-p))
 
 ;; ide settings
 
@@ -554,6 +561,7 @@
 
 (use-package company
   :ensure t
+  :defer t
   :hook (after-init . global-company-mode)
   :config
   (use-package company-bibtex :ensure t)
@@ -597,6 +605,7 @@
 ;; lsp
 (use-package eglot
   :ensure t
+  :defer t
   :hook ( (python-mode . eglot-ensure)
           (R-mode . eglot-ensure)
           (c-mode . eglot-ensure)
@@ -715,11 +724,9 @@ the children of class at point."
 
 (use-package flycheck
   :ensure t
-  :init
-  (add-hook 'after-init-hook #'global-flycheck-mode)
-  (add-hook 'flycheck-mode-hook #'flycheck-irony-setup)
-  :init
-  ;; (add-hook 'after-init-hook #'global-flycheck-mode)
+  :defer t
+  :hook ((after-init . global-flycheck-mode)
+         (flycheck-mode . flycheck-irony-setup))
   :config
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
@@ -771,6 +778,7 @@ the children of class at point."
 
 (use-package vertico
   :ensure t
+  :defer t
   :bind (("C-l" . my-filename-upto-parent))
   :hook (after-init . vertico-mode)
   :custom
@@ -1062,6 +1070,7 @@ the children of class at point."
 
 (use-package projectile
   :ensure t
+  :defer t
   :bind (:map projectile-mode-map
               ("C-c p" . projectile-command-map)
               ("C-;" . projectile-command-map)
@@ -1184,10 +1193,11 @@ the children of class at point."
 
 (use-package which-key
   :ensure t
+  :defer t
+  :hook (after-init . which-key-mode)
   :config
   (which-key-setup-minibuffer)
   (setq which-key-idle-secondary-delay 0))
-(add-hook 'after-init-hook #'which-key-mode)
 
 ;;; Web
 
@@ -1200,7 +1210,8 @@ the children of class at point."
 
 ;; racket
 (use-package racket-mode
-  :ensure t)
+  :ensure t
+  :defer t)
 
 ;; julia
 (use-package julia-mode
@@ -1302,6 +1313,7 @@ the children of class at point."
 
 (use-package languagetool
   :ensure t
+  :defer t
   :config
   (global-set-key (kbd "C-c l c") 'languagetool-check)
   (global-set-key (kbd "C-c l d") 'languagetool-clear-buffer)
@@ -1496,9 +1508,9 @@ the children of class at point."
 
 (use-package ein
   :ensure t
+  :defer t
   :config
-  (setq ein:worksheet-enable-undo t)
-)
+  (setq ein:worksheet-enable-undo t))
 
 (use-package pypytrace-mode
   :disabled
@@ -1508,16 +1520,17 @@ the children of class at point."
 
 (use-package python-black
   :ensure t
-  :demand t
   :after python
   :hook (python-mode . python-black-on-save-mode-enable-dwim))
 
 (use-package jupyter
-  :ensure t)
+  :ensure t
+  :defer t)
 
 ;; R
 (use-package ess
-  :ensure t)
+  :ensure t
+  :defer t)
 
 (use-package ess-view
   :ensure t
@@ -1526,10 +1539,6 @@ the children of class at point."
 (use-package ess-R-data-view
   :ensure t
   :after (ess))
-
-;; racket
-(use-package racket-mode
-  :ensure t)
 
 ;; smalltalk
 (use-package smalltalk-mode
@@ -1659,8 +1668,12 @@ the children of class at point."
 (use-package open-junk-file :ensure t)
 
 ;; AI agent
-(use-package eat :ensure t :config
-  (setq eat-term-scrollback-size 400000))
+(use-package eat
+  :ensure t
+  :defer t
+  :config
+  (setq eat-term-scrollback-size 400000)
+  (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
 
 (straight-use-package
  '(claudemacs :type git :host github :repo "cpoile/claudemacs"))
@@ -1700,10 +1713,6 @@ the children of class at point."
 ;; install required inheritenv dependency:
 (use-package inheritenv
   :vc (:url "https://github.com/purcell/inheritenv" :rev :newest))
-
-;; for eat terminal backend:
-(use-package eat :ensure t :config
-  (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
 
 ;; install claude-code.el
 (use-package claude-code :ensure t

@@ -10,14 +10,20 @@
      ,@body))
 
 (with-system gnu/linux
-  (progn
-    (set-frame-font "JetBrains Mono Medium 12" nil t)
-    ;; (add-to-list 'default-frame-alist '(font . "Fira Code-10"))
-    (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))))
+  (add-hook 'window-setup-hook
+            (lambda ()
+              ;; (set-frame-font "JetBrains Mono Medium 12" nil t)
+              (set-face-attribute 'default nil
+                                  :family "JetBrains Mono"
+                                  :height 110)
+              ;; (add-to-list 'default-frame-alist '(font . "Fira Code-10"))
+              (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))))
 
 (with-system darwin
-  (if (display-graphic-p)
-      (set-frame-font "Fira Code Retina-14" nil t)))
+  (add-hook 'window-setup-hook
+            (lambda ()
+              (when (display-graphic-p)
+                (set-frame-font "Fira Code Retina-14" nil t)))))
 
 (provide 'my-font)
 ;;; my-font.el ends here
