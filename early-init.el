@@ -15,6 +15,8 @@
                   file-name-handler-alist my/file-name-handler-alist)
             (message "Emacs loaded in %s." (emacs-init-time))))
 
-
+(with-eval-after-load 'comp
+  (setq native-comp-async-jobs-number 8)
+  (setq native-comp-speed 3))
 
 (provide 'early-init)
