@@ -1,33 +1,13 @@
-(setq package-enable-at-startup nil)
-
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name
-        "straight/repos/straight.el/bootstrap.el"
-        (or (bound-and-true-p straight-base-dir)
-            user-emacs-directory)))
-      (bootstrap-version 7))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
-
-(straight-use-package 'use-package)
-(setq straight-use-package-by-default t
-      ;; Faster startup than the default git-based checks (still safe for normal use).
-      straight-check-for-modifications '(find-when-checking))
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+;; (setq package-enable-at-startup nil)
+(package-initialize)
 
 (setq byte-compile-warnings '(cl-functions))
 
 (add-to-list 'load-path "~/.emacs.d/site-lisp")
 (if (eq system-type "gnu/linux")
     (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
-
-(setq package-enable-at-startup nil)
 
 (use-package bind-key :ensure t)
 (use-package diminish :ensure t)
@@ -1093,7 +1073,7 @@ the children of class at point."
   :disabled t)
 
 ;; yasnippet
-(use-package yasnippet
+(use-package yasnippet :disabled t
   :ensure t
   :hook (after-init . yas-global-mode)
   :config
@@ -1176,7 +1156,7 @@ the children of class at point."
   :defer t)
 
 ;; Git gutter
-(use-package git-gutter
+(use-package git-gutter :disabled t
   :ensure t
   :defer t
   :custom
@@ -1675,8 +1655,8 @@ the children of class at point."
   (setq eat-term-scrollback-size 400000)
   (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
 
-(straight-use-package
- '(claudemacs :type git :host github :repo "cpoile/claudemacs"))
+;; (straight-use-package
+;;  '(claudemacs :type git :host github :repo "cpoile/claudemacs"))
 
 (define-key prog-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
 (define-key emacs-lisp-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
@@ -1686,7 +1666,7 @@ the children of class at point."
 ;; Set a big buffer so we can search our history.
 
 ;; Hightlight TODO
-(use-package hl-todo
+(use-package hl-todo 
   :ensure t
   :defer t
   :hook ((prog-mode . hl-todo-mode)
