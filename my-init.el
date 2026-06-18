@@ -1,6 +1,9 @@
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; (setq package-enable-at-startup nil)
+(setq package-load-list '((dap-mode nil)
+                          (ccls nil)
+                          all))
 (package-initialize)
 
 (setq byte-compile-warnings '(cl-functions))
@@ -81,9 +84,31 @@
 ;; tabsize
 (setq-default tab-width 4)
 
+(defcustom my-large-file-threshold (* 1024 1024)
+  "Files larger than this skip expensive display/checker minor modes."
+  :type 'integer
+  :group 'my)
+
+(defun my-large-file-p ()
+  "Return non-nil when the current buffer is too large for expensive modes."
+  (or (and buffer-file-name
+           (file-remote-p buffer-file-name))
+      (> (buffer-size) my-large-file-threshold)))
+
+(defun my-enable-unless-large-file (mode)
+  "Enable MODE unless the current buffer is remote or large."
+  (unless (my-large-file-p)
+    (funcall mode 1)))
+
+(defun my-enable-display-line-numbers-mode ()
+  "Enable line numbers unless the current buffer is remote or large."
+  (my-enable-unless-large-file #'display-line-numbers-mode))
+
 (use-package whitespace
-  :hook (after-init . global-whitespace-mode)
+  :hook ((prog-mode text-mode conf-mode) . my-enable-whitespace-mode)
   :config
+  (defun my-enable-whitespace-mode ()
+    (my-enable-unless-large-file #'whitespace-mode))
   (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
   (setq whitespace-space-regexp "\\(\u3000+\\)")
   (setq whitespace-display-mappings
@@ -95,22 +120,23 @@
           ;; If this is a problem for you, please, comment the line below.
           (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t]))))
 
-;; disable whitespace-mode in dired-mode
-(add-hook 'dired-mode-hook (lambda () (global-whitespace-mode -1)))
-
 ;; revert buffer
+(setq auto-revert-verbose nil
+      auto-revert-remote-files nil
+      auto-revert-avoid-polling t
+      auto-revert-interval 5)
 (global-auto-revert-mode 1)
 
 ;; auto-fill
 (global-set-key (kbd "C-c q") 'auto-fill-mode)
+(setq-default fill-column 80)
 (use-package fill-column-indicator
-  :ensure t
-  :hook (prog-mode . fci-mode)
-  :config
-  (setq-default fill-column 80)
-  (setq fci-rule-column 80)
-  (setq fci-rule-width 1)
-  (setq fci-rule-color "darkgray"))
+  :disabled
+  :ensure t)
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (my-enable-unless-large-file
+             #'display-fill-column-indicator-mode)))
 
 (use-package visual-fill-column
   :ensure t
@@ -250,7 +276,8 @@
 
 (if (version<= "26.0.50" emacs-version)
     (progn
-      (global-display-line-numbers-mode)
+      (add-hook 'prog-mode-hook #'my-enable-display-line-numbers-mode)
+      (add-hook 'conf-mode-hook #'my-enable-display-line-numbers-mode)
       (set-face-attribute 'line-number nil
                           :foreground "DarkOliveGreen"
                           :background "#131521")
@@ -269,8 +296,10 @@
 (use-package highlight-indent-guides
   :ensure t
   :hook
-  (prog-mode . highlight-indent-guides-mode)
+  (prog-mode . my-enable-highlight-indent-guides-mode)
   :config
+  (defun my-enable-highlight-indent-guides-mode ()
+    (my-enable-unless-large-file #'highlight-indent-guides-mode))
   (setq highlight-indent-guides-method 'character))
 
 ;; font config
@@ -558,7 +587,7 @@
   (push 'company-preview-common-frontend company-frontends)
 
   (setq company-require-match 'never)
-  (setq company-idle-delay 0
+  (setq company-idle-delay 0.25
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-tooltip-align-annotations t))
@@ -572,11 +601,13 @@
 
 
 (use-package company-quickhelp
+  :disabled
   :ensure t
   :after (company)
   :config (company-quickhelp-mode))
 
 (use-package company-box
+  :disabled
   :ensure t
   :if (display-graphic-p)
   :after (company)
@@ -586,12 +617,32 @@
 (use-package eglot
   :ensure t
   :defer t
-  :hook ( (python-mode . eglot-ensure)
-          (R-mode . eglot-ensure)
-          (c-mode . eglot-ensure)
-          (LaTeX-mode . eglot-ensure)
-        )
+  :commands (eglot eglot-ensure)
   :config
+  (setq eglot-autoshutdown t
+        eglot-report-progress nil
+        eglot-send-changes-idle-time 1.0
+        eglot-ignored-server-capabilities
+        '(:documentHighlightProvider
+          :inlayHintProvider
+          :codeLensProvider
+          :colorProvider
+          :foldingRangeProvider
+          :semanticTokensProvider))
+
+  ;; JSONRPC logging and GUI-side inline UI updates are expensive in large
+  ;; workspaces. Keep Eglot usable but quiet by default.
+  (remove-hook 'jsonrpc-event-hook #'jsonrpc--log-event)
+
+  (defun my-eglot-lightweight-settings ()
+    "Reduce per-keystroke UI work in Eglot buffers."
+    (setq-local eldoc-idle-delay 1.0
+                eldoc-echo-area-use-multiline-p nil)
+    (when (fboundp 'eglot-inlay-hints-mode)
+      (eglot-inlay-hints-mode -1)))
+
+  (add-hook 'eglot-managed-mode-hook #'my-eglot-lightweight-settings)
+
   (add-to-list 'eglot-server-programs
                '(tex-mode "texlab"))
   (add-to-list 'eglot-server-programs
@@ -628,10 +679,10 @@ the children of class at point."
   )
 
 (use-package flycheck-eglot
+  :disabled
   :ensure t
   :after (flycheck eglot)
-  :config
-  (global-flycheck-eglot-mode 1))
+  :hook (eglot-managed-mode . flycheck-eglot-mode))
 
 (use-package lsp-mode
   :disabled
@@ -673,15 +724,16 @@ the children of class at point."
     (setq lsp-julia-default-environment "~/.julia/environments/v1.11")
     ))
 
-;; optionally
-(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp
+;; lsp-mode is disabled above. Keep optional lsp packages disabled too so
+;; startup does not try to install or activate mismatched dependencies.
+(use-package lsp-ui :disabled :ensure t :commands lsp-ui-mode :after lsp
   :config
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
-(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list :after lsp)
+(use-package lsp-treemacs :disabled :ensure t :commands lsp-treemacs-errors-list :after lsp)
 
 ;; optionally if you want to use debugger
-(use-package dap-mode :ensure t :after lsp)
+(use-package dap-mode :disabled :ensure t :after lsp)
 ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 ;; find definitions
@@ -705,9 +757,13 @@ the children of class at point."
 (use-package flycheck
   :ensure t
   :defer t
-  :hook ((after-init . global-flycheck-mode)
+  :hook ((prog-mode . my-enable-flycheck-mode)
          (flycheck-mode . flycheck-irony-setup))
   :config
+  (defun my-enable-flycheck-mode ()
+    (my-enable-unless-large-file #'flycheck-mode))
+  (setq flycheck-check-syntax-automatically '(save mode-enabled)
+        flycheck-idle-change-delay 2.0)
   (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
   (use-package flycheck-mypy :ensure t)
@@ -1372,7 +1428,8 @@ the children of class at point."
     (setq shell-escape-mode t))
 
   (use-package company-auctex
-    :ensure (:type git :host github :repo "alexeyr/company-auctex")
+    :disabled
+    :ensure t
     :init
     (company-auctex-init))
 
