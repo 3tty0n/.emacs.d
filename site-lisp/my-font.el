@@ -23,7 +23,12 @@
   (add-hook 'window-setup-hook
             (lambda ()
               (when (display-graphic-p)
-                (set-frame-font "Fira Code Retina-14" nil t)))))
+                (set-face-attribute 'default nil
+                                  :family "JetBrains Mono"
+                                  :height 140)
+                ;; (add-to-list 'default-frame-alist '(font . "Fira Code-10"))
+                (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP"))
+                ))))
 
 (provide 'my-font)
 ;;; my-font.el ends here
