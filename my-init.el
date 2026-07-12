@@ -100,10 +100,6 @@
   (unless (my-large-file-p)
     (funcall mode 1)))
 
-(defun my-enable-display-line-numbers-mode ()
-  "Enable line numbers unless the current buffer is remote or large."
-  (my-enable-unless-large-file #'display-line-numbers-mode))
-
 (use-package whitespace
   :hook ((prog-mode text-mode conf-mode) . my-enable-whitespace-mode)
   :config
@@ -276,14 +272,15 @@
 
 (if (version<= "26.0.50" emacs-version)
     (progn
-      (add-hook 'prog-mode-hook #'my-enable-display-line-numbers-mode)
-      (add-hook 'conf-mode-hook #'my-enable-display-line-numbers-mode)
+      (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+      (add-hook 'conf-mode-hook #'display-line-numbers-mode)
       (set-face-attribute 'line-number nil
                           :foreground "DarkOliveGreen"
                           :background "#131521")
       (set-face-attribute 'line-number-current-line nil
                           :foreground "gold")))
 
+(global-display-line-numbers-mode 1)
 
 (setq inhibit-startup-message t) ; 起動メッセージを非表示
 (tool-bar-mode -1)
@@ -1723,7 +1720,7 @@ the children of class at point."
 ;; Set a big buffer so we can search our history.
 
 ;; Hightlight TODO
-(use-package hl-todo 
+(use-package hl-todo
   :ensure t
   :defer t
   :hook ((prog-mode . hl-todo-mode)
