@@ -5,6 +5,29 @@
                           (ccls nil)
                           all))
 (package-initialize)
+(setq package-enable-at-startup nil)
+
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t
+      ;; Faster startup than the default git-based checks (still safe for normal use).
+      straight-check-for-modifications '(find-when-checking))
+(setq use-package-always-defer t)
 
 (setq byte-compile-warnings '(cl-functions))
 
@@ -83,6 +106,8 @@
 
 ;; tabsize
 (setq-default tab-width 4)
+
+(global-display-line-numbers-mode 1)
 
 (defcustom my-large-file-threshold (* 1024 1024)
   "Files larger than this skip expensive display/checker minor modes."
@@ -526,6 +551,7 @@
 
 (use-package doom-themes
   :ensure t
+  :defer nil
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
@@ -615,6 +641,10 @@
   :ensure t
   :defer t
   :commands (eglot eglot-ensure)
+  :hook ((python-mode . eglot-ensure)
+         (R-mode . eglot-ensure)
+         (c-mode . eglot-ensure)
+         (LaTeX-mode . eglot-ensure))
   :config
   (setq eglot-autoshutdown t
         eglot-report-progress nil
@@ -754,14 +784,13 @@ the children of class at point."
 (use-package flycheck
   :ensure t
   :defer t
-  :hook ((prog-mode . my-enable-flycheck-mode)
-         (flycheck-mode . flycheck-irony-setup))
+  :hook ((prog-mode . my-enable-flycheck-mode))
   :config
   (defun my-enable-flycheck-mode ()
     (my-enable-unless-large-file #'flycheck-mode))
   (setq flycheck-check-syntax-automatically '(save mode-enabled)
         flycheck-idle-change-delay 2.0)
-  (use-package flycheck-irony :ensure t)
+  ;; (use-package flycheck-irony :ensure t)
   (use-package flycheck-ocaml :ensure t)
   (use-package flycheck-mypy :ensure t)
   (use-package flymake-shellcheck
@@ -782,16 +811,17 @@ the children of class at point."
   :hook (prog-mode . rainbow-delimiters-mode)
   :config
   ;; color of parens
-  (use-package cl-lib)
-  (use-package color)
+  (require 'cl-lib)
+  (require 'color)
   (defun rainbow-delimiters-using-stronger-colors ()
     (interactive)
     (cl-loop
      for index from 1 to rainbow-delimiters-max-face-count
      do
      (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
-       (cl-callf color-saturate-name (face-foreground face) 30))))
-  (add-hook 'emacs-startup-hook 'rainbow-delimiters-using-stronger-colors))
+       (when (face-foreground face)
+         (cl-callf color-saturate-name (face-foreground face) 30)))))
+  (rainbow-delimiters-using-stronger-colors))
 
 (use-package ag :ensure t)
 
@@ -1126,7 +1156,7 @@ the children of class at point."
   :disabled t)
 
 ;; yasnippet
-(use-package yasnippet :disabled t
+(use-package yasnippet
   :ensure t
   :hook (after-init . yas-global-mode)
   :config
@@ -1633,34 +1663,6 @@ the children of class at point."
            "* %?\n   %a\n    %T")
           ))
 
-  (use-package ox-latex
-    :config
-    (add-to-list 'org-latex-classes
-                 '("ltjsarticle"
-                   "\\documentclass[11pt,a4paper]{ltjsarticle}
-[NO-DEFAULT-PACKAGES]
-\\usepackage{amsmath}
-% \\usepackage{newtxtext,newtxmath}
-\\usepackage{textcomp}
-\\usepackage{graphicx}
-\\usepackage{booktabs}
-\\usepackage{longtable}
-\\usepackage{wrapfig}
-\\usepackage{hyperref}
-\\hypersetup{pdfencoding=auto}"
-                   ("\\section{%s}" . "\\section*{%s}")
-                   ("\\subsection{%s}" . "\\subsection*{%s}")
-                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-
-    (add-to-list 'org-latex-classes
-                 '("beamer"
-                   "\\documentclass\[presentation\]\{beamer\}"
-                   ("\\section\{%s\}" . "\\section*\{%s\}")
-                   ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
-                   ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
-
   (setq org-latex-pdf-process '("lualatex --shell-escape --draftmode %f"
                                 "lualatex --shell-escape %f"))
   (setq org-latex-default-class "ltjsarticle")
@@ -1715,7 +1717,8 @@ the children of class at point."
 (define-key prog-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
 (define-key emacs-lisp-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
 (define-key text-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
-(define-key python-base-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
+(with-eval-after-load 'python
+  (define-key python-base-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu))
 
 ;; Set a big buffer so we can search our history.
 
@@ -1742,15 +1745,15 @@ the children of class at point."
 ;; AI
 
 (use-package monet
-  :vc (:url "https://github.com/stevemolitor/monet" :rev :newest))
+  :straight (monet :type git :host github :repo "stevemolitor/monet"))
 
 ;; install required inheritenv dependency:
 (use-package inheritenv
-  :vc (:url "https://github.com/purcell/inheritenv" :rev :newest))
+  :straight (inheritenv :type git :host github :repo "purcell/inheritenv"))
 
 ;; install claude-code.el
-(use-package claude-code :ensure t
-  :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
+(use-package claude-code
+  :straight (claude-code :type git :host github :repo "stevemolitor/claude-code.el")
   :config
   ;; optional IDE integration with Monet
   (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
@@ -1764,7 +1767,7 @@ the children of class at point."
   (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
 
 (use-package claude-code-ide
-  :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
+  :straight (claude-code-ide :type git :host github :repo "manzaltu/claude-code-ide.el")
   :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
   (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
