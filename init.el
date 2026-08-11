@@ -1,5 +1,6 @@
-;; file-name-handler-alist is already handled in early-init.el
-(load-file (concat user-emacs-directory "my-init.el"))
+;;; init.el --- Entry point -*- lexical-binding: t -*-
+
+(load (expand-file-name "my-init.el" user-emacs-directory) nil 'nomessage)
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

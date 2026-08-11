@@ -1,11 +1,10 @@
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-;; (setq package-enable-at-startup nil)
-(setq package-load-list '((dap-mode nil)
-                          (ccls nil)
-                          all))
-(package-initialize)
-(setq package-enable-at-startup nil)
+;;; my-init.el --- Personal Emacs config -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Straight + use-package config. UI chrome is in early-init.el.
+;; Buffer display settings (e.g. display-line-numbers) live below and are kept as-is.
+
+;;; Code:
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -25,87 +24,74 @@
 
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t
-      ;; Faster startup than the default git-based checks (still safe for normal use).
-      straight-check-for-modifications '(find-when-checking))
-(setq use-package-always-defer t)
+      ;; Skip git status scans at startup; check when you ask (`straight-pull-all`, etc.).
+      straight-check-for-modifications '(find-when-checking)
+      use-package-always-defer t
+      use-package-expand-minimally t
+      byte-compile-warnings '(cl-functions))
 
-(setq byte-compile-warnings '(cl-functions))
+(add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
+(when (eq system-type 'gnu/linux)
+  (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
 
-(add-to-list 'load-path "~/.emacs.d/site-lisp")
-(if (eq system-type "gnu/linux")
-    (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
+(use-package bind-key)
+(use-package diminish)
 
-(use-package bind-key :ensure t)
-(use-package diminish :ensure t)
 
 (use-package package-utils
-  :ensure t
-  :defer t)
+  :commands (package-utils-upgrade-all package-utils-list-upgrades))
 
 (unless (display-graphic-p)
   (xterm-mouse-mode 1)
-   (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
-   (global-set-key (kbd "<mouse-5>") 'scroll-up-line))
+  (global-set-key (kbd "<mouse-4>") #'scroll-down-line)
+  (global-set-key (kbd "<mouse-5>") #'scroll-up-line))
 
-;; path - defer to after-init for faster startup
 (use-package exec-path-from-shell
-  :ensure t
   :if (memq window-system '(mac ns x))
   :hook (after-init . exec-path-from-shell-initialize))
 
-;; Defer server start to after-init for faster startup
 (when window-system
   (add-hook 'after-init-hook
             (lambda ()
               (require 'server)
-              (unless (eq (server-running-p) 't)
+              (unless (server-running-p)
                 (server-start)))))
 
-(use-package restart-emacs :ensure t)
+(use-package restart-emacs
+  :commands restart-emacs)
 
 (use-package esup
   :disabled
-  :ensure t
-  ;; To use MELPA Stable use ":pin mepla-stable",
-  :pin melpa
-  :commands (esup))
+  :commands esup)
 
-;; initial window - defer icon loading for faster startup
+;; Startup screen (icons off = faster paint)
 (use-package dashboard
-  :ensure t
+  :demand t
   :config
-  (setq dashboard-items '((recents   . 10)
-                          (projects  . 10)
-                          (bookmarks . 10)))
-  ;; Defer icon loading - set to nil for faster startup, enable if desired
-  (setq dashboard-set-heading-icons nil)
-  (setq dashboard-set-file-icons nil)
-  (setq dashboard-set-navigator t)
+  (setq dashboard-items '((recents . 10)
+                          (projects . 10)
+                          (bookmarks . 10))
+        dashboard-set-heading-icons nil
+        dashboard-set-file-icons nil
+        dashboard-set-navigator t
+        dashboard-center-content t)
   (dashboard-setup-startup-hook))
 
-;; hide warnings
-(setq warning-minimum-level :emergency)
+(setq warning-minimum-level :emergency
+      initial-scratch-message ""
+      compilation-scroll-output t
+      ring-bell-function #'ignore
+      use-short-answers t
+      make-backup-files nil
+      auto-save-default nil
+      create-lockfiles nil)
 
-;; internal
-(setq initial-scratch-message "")
-(setq compilation-scroll-output t)
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
 
-;; ignore beep sounds
-(setq ring-bell-function 'ignore)
-
-;; delete while spaces when you save a file every time
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-;; no backup
-(setq make-backup-files nil)
-(setq auto-save-default nil)
-(setq-default backup-directory-alist '(("" . "~/.emacs.d/.backup")))
-
-;; tab -> space
-(setq-default indent-tabs-mode nil)
-
-;; tabsize
-(setq-default tab-width 4)
+(setq-default backup-directory-alist
+              `(("." . ,(expand-file-name ".backup" user-emacs-directory)))
+              indent-tabs-mode nil
+              tab-width 4)
 
 (global-display-line-numbers-mode 1)
 
@@ -209,19 +195,16 @@
           eshell-prompt-function 'epe-theme-lambda)))
 
 (use-package eshell-git-prompt
-  :ensure t
-  :after (eshell)
-  :defer t
-  :init
+  :after eshell
+  :config
   (eshell-git-prompt-use-theme 'powerline))
 
 (use-package eshell-z
-  :after (eshell)
-  :ensure t
+  :after eshell
   :bind ("C-x C-z" . eshell-z))
 
 ;; shell
-(set-language-environment  'utf-8)
+(set-language-environment 'utf-8)
 (prefer-coding-system 'utf-8)
 (add-hook 'shell-mode-hook (lambda () (display-line-numbers-mode -1)))
 
@@ -255,29 +238,27 @@
   (shell-pop-full-span t)
   (shell-pop-window-position "bottom"))
 
-;; saveplace
+;; saveplace / history
 (save-place-mode 1)
-(setq save-place-file (locate-user-emacs-file "~/.emacs.d/.cache/places"))
+(setq save-place-file (expand-file-name ".cache/places" user-emacs-directory))
+(savehist-mode 1)
+(recentf-mode 1)
+(setq recentf-max-saved-items 200)
 
-
-(defalias 'yes-or-no-p 'y-or-n-p) ; yes-no → y-n
-
-(show-paren-mode t) ; 対応するカッコを強調表示
+(show-paren-mode 1)
+(when (fboundp 'repeat-mode)
+  (repeat-mode 1))
 
 ;; smartparens
 (use-package smartparens
-  :ensure t
-  :hook (after-init . smartparens-global-mode)
+  :defer 0.3
   :config
-  ;; (sp-pair "'" "'" :actions nil)
-  (sp-pair "`" "`" :actions nil))
+  (require 'smartparens-config)
+  (sp-pair "`" "`" :actions nil)
+  (smartparens-global-mode 1))
 
-(setq scroll-conservatively 10)
-(setq scroll-margin 10)
-
-(when (window-system)
-  (scroll-bar-mode -1) ; スクロールバーを非表示
-  )
+(setq scroll-conservatively 10
+      scroll-margin 10)
 
 ;; (if (version<= "26.0.50" emacs-version)
 ;;     (progn
@@ -307,12 +288,8 @@
 
 (global-display-line-numbers-mode 1)
 
-(setq inhibit-startup-message t) ; 起動メッセージを非表示
-(tool-bar-mode -1)
-(menu-bar-mode -1)
-
 ;; set C-h to backspace
-(global-set-key (kbd "C-h") 'backward-char)
+(global-set-key (kbd "C-h") #'backward-char)
 
 ;; highlight indentation line
 (use-package highlight-indent-guides
@@ -324,29 +301,25 @@
     (my-enable-unless-large-file #'highlight-indent-guides-mode))
   (setq highlight-indent-guides-method 'character))
 
-;; font config
-;; (use-package my-font :ensure nil :load-path "site-lisp/my-font")
-(load-file "~/.emacs.d/site-lisp/my-font.el")
-
-;; utilities
-;; (use-package my-util :ensure nil :load-path "site-lisp/my-util")
-(load-file "~/.emacs.d/site-lisp/my-util.el")
+;; font config / utilities
+(require 'my-font)
+(require 'my-util)
 
 ;; toggle truncate lines
-(global-set-key (kbd "C-c t") 'toggle-truncate-lines)
+(global-set-key (kbd "C-c t") #'toggle-truncate-lines)
 
 ;; copy & paste
-(if (eq system-type 'gnu/linux)
-    (setq x-select-enable-clipboard t
-          x-select-enable-primary t))
+(when (eq system-type 'gnu/linux)
+  (setq select-enable-clipboard t
+        select-enable-primary t))
 
 ;; undo tree
 (use-package undo-tree
-  :ensure t
-  :hook (after-init . global-undo-tree-mode)
+  :defer 0.5
   :config
-  (setq undo-tree-enable-undo-in-region nil)
-  (setq undo-tree-auto-save-history nil))
+  (setq undo-tree-enable-undo-in-region nil
+        undo-tree-auto-save-history nil)
+  (global-undo-tree-mode 1))
 
 ;; dired
 (with-eval-after-load 'dired
@@ -550,14 +523,12 @@
   (load-theme 'spacemacs-dark t))
 
 (use-package doom-themes
-  :ensure t
-  :defer nil
+  :demand t
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
   :config
   (load-theme 'doom-city-lights t)
-  ;; Defer treemacs and org config until those packages are loaded
   (with-eval-after-load 'treemacs
     (setq doom-themes-treemacs-theme "doom-colors")
     (doom-themes-treemacs-config))
@@ -566,75 +537,56 @@
 
 ;; mode-line
 (use-package powerline
-  :ensure t
   :disabled
   :config
   (powerline-default-theme))
 
-;; XXX: hit M-x nerd-install-fonts
-;; https://github.com/seagle0128/doom-modeline#install
+;; XXX: hit M-x nerd-icons-install-fonts
 (use-package doom-modeline
-  :ensure t
-  :defer t
   :hook (after-init . doom-modeline-mode))
 
-;; icon
 (use-package all-the-icons
-  :ensure t
-  :if (display-graphic-p))
+  :if (display-graphic-p)
+  :commands (all-the-icons-icon-for-file all-the-icons-icon-for-mode))
 
 (use-package nerd-icons
-  :ensure t
-  :if (display-graphic-p))
+  :if (display-graphic-p)
+  :defer t)
 
 ;; ide settings
 
 ;; completion
+(use-package orderless
+  :demand t
+  :config
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package company
-  :ensure t
-  :defer t
-  :hook (after-init . global-company-mode)
+  :defer 0.5
+  :bind (("C-M-i" . company-complete)
+         :map company-active-map
+         ("C-n" . company-select-next)
+         ("C-p" . company-select-previous)
+         ("C-s" . company-filter-candidates)
+         ("TAB" . company-complete-common-or-cycle)
+         :map company-search-map
+         ("C-n" . company-select-next)
+         ("C-p" . company-select-previous))
   :config
-  (use-package company-bibtex :ensure t)
-  (use-package company-c-headers :ensure t)
-  (use-package company-reftex :ensure t)
-  (use-package company-flx :ensure t)
-  (define-key global-map (kbd "C-M-i") 'company-complete)
-  (define-key company-active-map (kbd "C-n") 'company-select-next)
-  (define-key company-active-map (kbd "C-p") 'company-select-previous)
-  (define-key company-search-map (kbd "C-n") 'company-select-next)
-  (define-key company-search-map (kbd "C-p") 'company-select-previous)
-  (define-key company-active-map (kbd "C-s") 'company-filter-candidates)
-  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
-  (push 'company-preview-common-frontend company-frontends)
-
-  (setq company-require-match 'never)
-  (setq company-idle-delay 0.25
+  (setq company-require-match 'never
+        company-idle-delay 0.25
         company-minimum-prefix-length 2
         company-selection-wrap-around t
-        company-tooltip-align-annotations t))
-
-;;(use-package company-dwim
-;;  :ensure (company-dwim :type git :host github :repo "zk-phi/company-dwim"))
-
-;;(use-package company-anywhare
-;;  :ensure nil
-;;  :load-path "site-lisp/company-anywhare")
-
-
-(use-package company-quickhelp
-  :disabled
-  :ensure t
-  :after (company)
-  :config (company-quickhelp-mode))
-
-(use-package company-box
-  :disabled
-  :ensure t
-  :if (display-graphic-p)
-  :after (company)
-  :hook (company-mode . company-box-mode))
+        company-tooltip-align-annotations t
+        company-backends
+        '(company-capf
+          company-files
+          (company-dabbrev-code company-keywords)
+          company-dabbrev))
+  (push 'company-preview-common-frontend company-frontends)
+  (global-company-mode 1))
 
 ;; lsp
 (use-package eglot
@@ -675,8 +627,6 @@
   (add-to-list 'eglot-server-programs
                '(c-mode "ccls"))
 
-  (setq company-transformers nil)
-
   (defun eglot-ccls-inheritance-hierarchy (&optional derived)
     "Show inheritance hierarchy for the thing at point.
 If DERIVED is non-nil (interactively, with prefix argument), show
@@ -695,11 +645,11 @@ the children of class at point."
               (pcase-let ((`(,depth . ,node) (pop tree)))
                 (cl-destructuring-bind (&key uri range) (plist-get node :location)
                   (insert (make-string depth ?\ ) (plist-get node :name) "\n")
-                  (make-text-button (+ (point-at-bol 0) depth) (point-at-eol 0)
-                                    'action `(lambda (_arg)
+                  (make-text-button (+ (line-beginning-position 0) depth) (line-end-position 0)
+                                    'action (lambda (_arg)
                                                (interactive)
-                                               (find-file (eglot--uri-to-path ',uri))
-                                               (goto-char (car (eglot--range-region ',range)))))
+                                               (find-file (eglot--uri-to-path uri))
+                                               (goto-char (car (eglot--range-region range)))))
                   (cl-loop for child across (plist-get node :children)
                            do (push (cons (1+ depth) child) tree)))))))
       (eglot--error "Hierarchy unavailable")))
@@ -765,65 +715,43 @@ the children of class at point."
 
 ;; find definitions
 (use-package smart-jump
-  :ensure t
-  :defer 1
+  :defer 2
   :config
   (smart-jump-setup-default-registers))
 
-;; syntax check
+;; syntax check — Flycheck in prog-mode; Flymake stays available for Eglot
 (use-package flymake
+  :defer t
   :config
   (use-package flymake-diagnostic-at-point
-    :ensure t
     :after flymake
-    :config
-    (add-hook 'flymake-mode-hook #'flymake-diagnostic-at-point-mode))
-  (use-package flymake-python-pyflakes :ensure t)
-  (use-package flymake-shellcheck :ensure t))
+    :hook (flymake-mode . flymake-diagnostic-at-point-mode)))
+
+(use-package flymake-shellcheck
+  :commands flymake-shellcheck-load
+  :hook (sh-mode . flymake-shellcheck-load))
 
 (use-package flycheck
-  :ensure t
-  :defer t
-  :hook ((prog-mode . my-enable-flycheck-mode))
+  :hook (prog-mode . my-enable-flycheck-mode)
   :config
   (defun my-enable-flycheck-mode ()
     (my-enable-unless-large-file #'flycheck-mode))
   (setq flycheck-check-syntax-automatically '(save mode-enabled)
         flycheck-idle-change-delay 2.0)
-  ;; (use-package flycheck-irony :ensure t)
-  (use-package flycheck-ocaml :ensure t)
-  (use-package flycheck-mypy :ensure t)
-  (use-package flymake-shellcheck
-    :commands flymake-shellcheck-load
-    :init
-    (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
-
-  ;; (setq flymake-mode -1)
   (use-package flycheck-pos-tip
-    :ensure t
     :if (display-graphic-p)
     :config
     (flycheck-pos-tip-mode)))
 
+(use-package flycheck-ocaml :defer t)
+(use-package flycheck-mypy :defer t)
+
 ;; rainbow delimiters
 (use-package rainbow-delimiters
-  :ensure t
-  :hook (prog-mode . rainbow-delimiters-mode)
-  :config
-  ;; color of parens
-  (require 'cl-lib)
-  (require 'color)
-  (defun rainbow-delimiters-using-stronger-colors ()
-    (interactive)
-    (cl-loop
-     for index from 1 to rainbow-delimiters-max-face-count
-     do
-     (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
-       (when (face-foreground face)
-         (cl-callf color-saturate-name (face-foreground face) 30)))))
-  (rainbow-delimiters-using-stronger-colors))
+  :hook (prog-mode . rainbow-delimiters-mode))
 
-(use-package ag :ensure t)
+(use-package ag
+  :commands (ag ag-project ag-regexp))
 
 (defun my-filename-upto-parent ()
   "Move to parent directory like \"cd ..\" in find-file."
@@ -856,54 +784,31 @@ the children of class at point."
   :config
 
   (use-package marginalia
-    :after (vertico)
-    :ensure t
+    :after vertico
     :init
     (marginalia-mode))
 
-  ;; Optionally use the `orderless' completion style. See
-  ;; `+orderless-dispatch' in the Consult wiki for an advanced Orderless style
-  ;; dispatcher. Additionally enable `partial-completion' for file path
-  ;; expansion. `partial-completion' is important for wildcard support.
-  ;; Multiple files can be opened at once with `find-file' if you enter a
-  ;; wildcard. You may also give the `initials' completion style a try.
-  (use-package orderless
-    :ensure t
-    :init
-    ;; Configure a custom style dispatcher (see the Consult wiki)
-    ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
-    ;;       orderless-component-separator #'orderless-escapable-split-on-space)
-    (setq completion-styles '(orderless)
-          completion-category-defaults nil
-          completion-category-overrides '((file (styles partial-completion)))))
+  ;; orderless is configured globally above
 
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
-  (use-package savehist
-    :after (vertico)
-    :ensure t
-    :init
-    (savehist-mode))
+  ;; (savehist-mode is enabled globally above)
 
   ;; A few more useful configurations...
   (use-package emacs
+    :straight nil
     :init
-    ;; Add prompt indicator to `completing-read-multiple'.
-    ;; Alternatively try `consult-completing-read-multiple'.
     (defun crm-indicator (args)
       (cons (concat "[CRM] " (car args)) (cdr args)))
     (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
 
-    ;; Do not allow the cursor in the minibuffer prompt
     (setq minibuffer-prompt-properties
           '(read-only t cursor-intangible t face minibuffer-prompt))
     (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
-    ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
-    ;; Vertico commands are hidden in normal buffers.
-    ;; (setq read-extended-command-predicate
-    ;;       #'command-completion-default-include-p)
+    (when (boundp 'read-extended-command-predicate)
+      (setq read-extended-command-predicate
+            #'command-completion-default-include-p))
 
-    ;; Enable recursive minibuffers
     (setq enable-recursive-minibuffers t))
 
   ;; Example configuration for Consult
@@ -1127,41 +1032,32 @@ the children of class at point."
   (define-key helm-find-files-map (kbd "TAB") 'helm-execute-persistent-action))
 
 (use-package imenu-anywhere
-  :ensure t
-  :bind
-  ("C-." . imenu-anywhere))
+  :bind ("C-c ." . imenu-anywhere))
 
 (use-package projectile
-  :ensure t
-  :defer t
-  :bind (:map projectile-mode-map
-              ("C-c p" . projectile-command-map)
-              ("C-;" . projectile-command-map)
-              ("s-;" . projectile-command-map))
-  :hook (after-init . projectile-mode)
+  :defer 0.8
+  :bind-keymap (("C-c p" . projectile-command-map)
+                ("C-;" . projectile-command-map)
+                ("s-;" . projectile-command-map))
   :config
-  (setq projectile-switch-project-action #'projectile-dired))
+  (setq projectile-switch-project-action #'projectile-dired
+        projectile-enable-caching t)
+  (projectile-mode 1))
 
-;; ace jump
-(use-package ace-jump-mode
-  :ensure t
-  :defer t
-  :init
-  (autoload 'ace-jump-mode "ace-jump-mode" nil t)
-  (bind-key "C-." 'ace-jump-mode))
+;; Jump (avy is the maintained successor to ace-jump)
+(use-package avy
+  :bind (("C-." . avy-goto-char-timer)
+         ("M-g f" . avy-goto-line)))
 
-;; gist
 (use-package gist
-  :ensure t
   :disabled t)
 
-;; yasnippet
+;; yasnippet — per-buffer, not global at startup
 (use-package yasnippet
-  :ensure t
-  :hook (after-init . yas-global-mode)
+  :hook ((prog-mode text-mode conf-mode) . yas-minor-mode)
   :config
-  (use-package yasnippet-snippets
-    :ensure t))
+  (yas-reload-all)
+  (use-package yasnippet-snippets))
 
 (global-unset-key (kbd "C-z"))
 
@@ -1201,25 +1097,10 @@ the children of class at point."
 
 ;; Magit
 (use-package magit
-  :ensure t
-  :defer t
-  ;; :pin "melpa-stable"
-  :init
-  (global-set-key (kbd "C-x g") 'magit)
+  :bind ("C-x g" . magit-status)
   :config
-  (setq-default magit-auto-revert-mode nil)
-  (setq vc-handled-backends '())
-  (eval-after-load "vc" '(remove-hook 'find-file-hooks 'vc-find-file-hook))
-  (custom-set-faces
-   ;; custom-set-faces was added by Custom.
-   ;; If you edit it by hand, you could mess it up, so be careful.
-   ;; Your init file should contain only one such instance.
-   ;; If there is more than one, they won't work right.
-   '(magit-diff-added ((t (:background "black" :foreground "green"))))
-   '(magit-diff-added-highlight ((t (:background "white" :foreground "green"))))
-   '(magit-diff-removed ((t (:background "black" :foreground "blue"))))
-   '(magit-diff-removed-hightlight ((t (:background "white" :foreground "blue"))))
-   '(magit-hash ((t (:foreground "red"))))))
+  (setq magit-auto-revert-mode nil
+        vc-handled-backends '(Git)))
 
 (use-package magit-todos
   :after magit
@@ -1255,12 +1136,12 @@ the children of class at point."
       (git-gutter:popup-hunk))))
 
 (use-package which-key
-  :ensure t
-  :defer t
-  :hook (after-init . which-key-mode)
+  :defer 0.5
   :config
   (which-key-setup-minibuffer)
-  (setq which-key-idle-secondary-delay 0))
+  (setq which-key-idle-delay 0.4
+        which-key-idle-secondary-delay 0.05)
+  (which-key-mode 1))
 
 ;;; Web
 
@@ -1273,106 +1154,93 @@ the children of class at point."
 
 ;; racket
 (use-package racket-mode
-  :ensure t
-  :defer t)
+  :mode "\\.rkt\\'")
 
 ;; julia
 (use-package julia-mode
-  :ensure t)
+  :mode "\\.jl\\'")
 
 ;; c
 (use-package cc-mode
+  :straight nil
   :defer t
-  :mode ("\\.g4\\'" . antlr-mode)
   :config (setq c-basic-offset 4)
   :hook
-  (asm-mode-hook  . (lambda () (setq-default indent-tabs-mode t)))
-  (java-mode-hook . (lambda () (setq c-basic-offset 4
-                                     tab-width 4
-                                     indent-tabs-mode nil)))
-  (c-mode-hook    . (lambda () (setq c-basic-offset 4
-                                     tab-always-indent 0
-                                     c-auto-newline t
-                                     indent-tabs-mode nil)))
-  (sh-mode-hook   . (lambda () (setq sh-basic-offset 4
-                                     indent-tabs-mode nil))))
+  (asm-mode . (lambda () (setq-default indent-tabs-mode t)))
+  (java-mode . (lambda () (setq c-basic-offset 4
+                                tab-width 4
+                                indent-tabs-mode nil)))
+  (c-mode . (lambda () (setq c-basic-offset 4
+                             tab-always-indent 0
+                             c-auto-newline t
+                             indent-tabs-mode nil)))
+  (sh-mode . (lambda () (setq sh-basic-offset 4
+                              indent-tabs-mode nil))))
 
 ;; sml
-
 (use-package sml-mode
-  :ensure t)
+  :mode ("\\.sml\\'" "\\.sig\\'"))
 
 ;; ocaml
 (use-package tuareg
   :disabled
-  :ensure t
   :init
   (add-hook 'tuareg-mode-hook #'merlin-mode)
-  ;; (add-hook 'tuareg-mode-hook #'merlin-eldoc-setup)
   (add-hook 'tuareg-mode-hook #'utop-minor-mode)
-  (add-to-list 'auto-mode-alist '("\\.ml[iylp]?" . tuareg-mode))
-  (add-to-list 'auto-mode-alist '("dune" . dune-mode))
+  (add-to-list 'auto-mode-alist '("\\.ml[iylp]?\\'" . tuareg-mode))
+  (add-to-list 'auto-mode-alist '("\\`dune\\'" . dune-mode))
   :config
-  (setq tuareg-match-patterns-aligned t)
-  (setq tuareg-highlight-all-operators t))
+  (setq tuareg-match-patterns-aligned t
+        tuareg-highlight-all-operators t))
 
 (use-package ocp-indent
   :disabled
-  :ensure t
-  :disabled
-  :after (tuareg)
+  :after tuareg
   :config
-  (add-to-list 'tuareg-mode-hook 'ocp-setup-indent))
+  (add-hook 'tuareg-mode-hook #'ocp-setup-indent))
 
 (use-package dune
-  :ensure t)
+  :mode (("\\`dune\\'" . dune-mode)
+         ("\\`dune-project\\'" . dune-mode)))
 
 (use-package merlin
   :disabled ;; enable when lsp-ocaml is disabled
-  :ensure t
-  :after (tuareg)
+  :after tuareg
   :config
-  ;; Disable Merlin's own error checking
   (setq merlin-error-after-save nil)
-  ;; Enable Flycheck checker
   (flycheck-ocaml-setup)
-
   (use-package merlin-company
-    :ensure t
     :config
     (add-to-list 'company-backends #'merlin-company-backend)))
 
 (use-package merlin-eldoc
   :disabled
-  :ensure t
-  :after (merlin))
+  :after merlin)
 
 (use-package utop
-  :ensure t
+  :commands (utop utop-minor-mode)
   :config
-  (setq utop-command "opam config exec -- utop -emacs"))
+  (setq utop-command "opam exec -- utop -emacs"))
 
 (use-package ocamlformat
-  :ensure t
-  :after (tuareg))
+  :after tuareg)
 
 ;; Proof General
-(use-package proof-general :ensure t :disabled)
+(use-package proof-general :disabled)
 
 ;; LaTeX
 (use-package pdf-tools
-  :ensure t
-  ;; :if (eq system-type 'gnu/linux)
-  :mode ("\\.pdf\\'" . pdf-tools-install)
+  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :magic ("%PDF" . pdf-view-mode)
   :bind ("C-c C-g" . pdf-sync-forward-search)
-  :defer t
   :init
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
-  (add-hook 'pdf-view-mode-hook '(lambda () (display-line-numbers-mode -1)))
-  (add-hook 'pdf-tools-enabled-hook '(lambda () (auto-revert-mode 1)))
+  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
+  (add-hook 'pdf-tools-enabled-hook (lambda () (auto-revert-mode 1)))
   :config
-  (setq mouse-wheel-follow-mouse t)
-  (setq pdf-view-resize-factor 1.10))
+  (pdf-tools-install :no-query)
+  (setq mouse-wheel-follow-mouse t
+        pdf-view-resize-factor 1.10))
 
 (use-package languagetool
   :ensure t
@@ -1389,28 +1257,27 @@ the children of class at point."
         languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
 (use-package auctex
-  :ensure t
   :mode ("\\.tex\\'" . LaTeX-mode)
   :config
   (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
   (add-hook 'LaTeX-mode-hook #'turn-on-flyspell)
   (add-hook 'LaTeX-mode-hook #'turn-on-auto-fill)
-  ;; (add-hook 'LaTeX-mode-hook #'visual-line-mode)
   (add-hook 'LaTeX-mode-hook #'display-fill-column-indicator-mode)
-  (flycheck-mode -1)
 
-  (if system-type 'gnu-linux
+  (when (eq system-type 'gnu/linux)
     (setq TeX-view-program-selection '((output-pdf "Okular"))))
 
-  (require 'tex-site)
-  (setq TeX-parse-self t)
-  (setq TeX-auto-save t)
-  (setq TeX-clean-confirm t)
-  (setq TeX-PDF-mode t)
-  (setq TeX-source-correlate-mode t)
+  (setq TeX-parse-self t
+        TeX-auto-save t
+        TeX-clean-confirm t
+        TeX-PDF-mode t
+        TeX-source-correlate-mode t
+        TeX-source-correlate-start-server t
+        TeX-master t
+        reftex-plug-into-AUCTeX t
+        LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape -synctex=1 %S%(PDFout)")))
 
-  ;; Outline minor mode
-  ;; extra outline headers
+  ;; Outline minor mode — extra outline headers
   (setq TeX-outline-extra
         '(("%chapter" 1)
           ("%section" 2)
@@ -1418,7 +1285,6 @@ the children of class at point."
           ("%subsubsection" 4)
           ("%paragraph" 5)))
 
-  ;; add font locking to the headers
   (font-lock-add-keywords
    'latex-mode
    '(("^%\\(chapter\\|\\(sub\\|subsub\\)?section\\|paragraph\\)"
@@ -1429,26 +1295,11 @@ the children of class at point."
      ("^%subsubsection{\\(.*\\)}" 1 'font-latex-sectioning-4-face t)
      ("^%paragraph{\\(.*\\)}"     1 'font-latex-sectioning-5-face t)))
 
-  ;; reftex
-  (setq reftex-plug-into-AUCTeX t)
-
-  ;; inverse search
-  (setq TeX-source-correlate-mode t)
-  (setq-default TeX-source-correlate-start-server t)
-
-  (setq-default TeX-master t)
-  (setq LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape -synctex=1 %S%(PDFout)")))
-
-  ;; Use pdf-tools to open PDF files
-  ;; (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-  ;;       TeX-source-correlate-start-server t)
-
-  ;; Update PDF buffers after successful LaTeX runs
   (add-hook 'TeX-after-compilation-finished-functions
             #'TeX-revert-document-buffer)
 
   (use-package auctex-latexmk
-    :ensure nil
+    :straight nil
     :load-path "site-lisp/auctex-latexmk"
     :config
     (auctex-latexmk-setup)
@@ -1456,119 +1307,109 @@ the children of class at point."
 
   (use-package company-auctex
     :disabled
-    :ensure t
     :init
     (company-auctex-init))
 
   (use-package reftex
-    :ensure nil
-    :init
-    (reftex-mode)
+    :straight nil
+    :hook (LaTeX-mode . reftex-mode)
     :config
     (setq reftex-section-levels
-          (append '(("frametitle" . -3) ) reftex-section-levels))
-    (setq reftex-cite-prompt-optional-args t)
-    (setq reftex-plug-into-AUCTeX t))
+          (append '(("frametitle" . -3)) reftex-section-levels)
+          reftex-cite-prompt-optional-args t
+          reftex-plug-into-AUCTeX t))
 
   (use-package auctex-cont-latexmk
-    :ensure t
-    :bind
-    (:map LaTeX-mode-map
-          ("C-c k" . auctex-cont-latexmk-toggle))))
+    :bind (:map LaTeX-mode-map
+                ("C-c k" . auctex-cont-latexmk-toggle))))
 
 ;; lua
 (use-package lua-mode
-  :ensure t
-  :defer t)
+  :mode "\\.lua\\'")
 
 ;; scala
-;; Enable scala-mode and sbt-mode
 (use-package scala-mode
-  :ensure t
-  :mode "\\.s\\(cala\\|bt\\)$")
+  :mode "\\.s\\(cala\\|bt\\)\\'")
 
 (use-package sbt-mode
-  :commands sbt-start sbt-command
-  :ensure t
+  :commands (sbt-start sbt-command)
   :config
-  ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
-  ;; allows using SPACE when in the minibuffer
   (substitute-key-definition
    'minibuffer-complete-word
    'self-insert-command
    minibuffer-local-completion-map)
-   ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
   (setq sbt:program-options '("-Dsbt.supershell=false")))
 
 ;; Java build tool
-(use-package gradle-mode :ensure t
+(use-package gradle-mode
+  :commands gradle-mode
   :config
-  (use-package groovy-mode :ensure t))
+  (use-package groovy-mode
+    :mode "\\.groovy\\'"))
 
 ;; Java CUP
 (use-package cup-java-mode
   :disabled
-  :ensure nil
+  :straight nil
   :load-path "site-lisp/cup-java"
-  :mode "\\.cup$")
+  :mode "\\.cup\\'")
 
-(use-package nxml
-  :mode
-  (("\.xml$" . nxml-mode)
-   ("\.xls$" . nxml-mode))
+(use-package nxml-mode
+  :straight nil
+  :mode (("\\.xml\\'" . nxml-mode)
+         ("\\.xls\\'" . nxml-mode))
   :config
-  (setq nxml-child-indent 2)
-  (setq nxml-attribute-indent 2)
-  (setq nxml-slash-auto-complete-flag t))
+  (setq nxml-child-indent 2
+        nxml-attribute-indent 2
+        nxml-slash-auto-complete-flag t))
 
-(use-package flycheck-gradle :ensure t)
+(use-package flycheck-gradle
+  :defer t)
 
 ;; JavaScript
 (use-package js2-mode
-  :ensure t
-  :mode "\\.js\\$")
+  :mode "\\.js\\'")
 
 (use-package peg
-  :ensure t
-  :mode "\\.(pegjs|peg)\\$")
+  :mode "\\.\\(pegjs\\|peg\\)\\'")
 
 ;; Typescript
 (use-package typescript-mode
-  :ensure t)
+  :mode "\\.tsx?\\'")
 
 ;; haskell
 (use-package haskell-mode
-  :ensure t
-  :defer t)
+  :mode (("\\.hs\\'" . haskell-mode)
+         ("\\.lhs\\'" . haskell-mode)))
 
 ;; gnuplot
 (use-package gnuplot
-  :ensure t
-  :init (add-to-list 'auto-mode-alist '("\\.plot" . gnuplot-mode)))
+  :mode ("\\.plot\\'" . gnuplot-mode))
 
 ;; PHP
-(use-package php-mode :ensure t)
+(use-package php-mode
+  :mode "\\.php\\'")
 
 ;; Python
 (use-package python
-  :ensure nil
+  :straight nil
+  :defer t
   :config
   (defun python-pytest ()
     (interactive)
     (if (and (string-match
               (rx bos "test_")
               (file-name-nondirectory (buffer-file-name)))
-             (s-suffix? ".py" (file-name-nondirectory (buffer-file-name))))
+             (string-suffix-p ".py" (file-name-nondirectory (buffer-file-name))))
         (let (input)
           (while (not input)
-            (setq input (read-string
-                         "-k:")))
+            (setq input (read-string "-k:")))
           (let (cmd)
             (if (string= "" input)
-                (setq cmd "py.tesst --color=no -rP ")
-              (setq cmd (concat (concat "py.test --color=no -rP -k " input) " ")))
+                (setq cmd "py.test --color=no -rP ")
+              (setq cmd (concat "py.test --color=no -rP -k " input " ")))
             (compile (concat cmd (buffer-file-name)))))
-      (py-execute-buffer))))
+      (message "Not a pytest file"))))
 
 (use-package ein
   :ensure t
@@ -1614,30 +1455,26 @@ the children of class at point."
 ;;   :mode "\\.som$")
 
 ;; html
-(use-package htmlize :ensure t)
+(use-package htmlize
+  :commands (htmlize-buffer htmlize-file htmlize-region))
 
 ;; markdown
 (use-package markdown-mode
-  :ensure t
+  :mode (("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
   :config
-  ;; pandoc
   (setq markdown-command
-      (concat
-       "pandoc"
-       " --from=markdown --to=html"
-       " --standalone --mathjax --highlight-style=pygments"))
-  )
+        "pandoc --from=markdown --to=html --standalone --mathjax --highlight-style=pygments"))
 
 ;; csv
 (use-package csv-mode
-  :ensure t)
+  :mode "\\.csv\\'")
 
 ;; YAML
 (use-package yaml-mode
-  :ensure t
+  :mode "\\.ya?ml\\'"
   :config
-  (use-package yaml-imenu
-    :ensure t))
+  (use-package yaml-imenu))
 
 (use-package org
   :ensure t
@@ -1701,31 +1538,18 @@ the children of class at point."
     :bind (:map org-agenda-mode-map
                 ("p" . org-pomodoro))))
 
-(use-package open-junk-file :ensure t)
+(use-package open-junk-file
+  :commands open-junk-file)
 
 ;; AI agent
 (use-package eat
-  :ensure t
-  :defer t
+  :commands (eat eat-other-window)
   :config
   (setq eat-term-scrollback-size 400000)
   (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
 
-;; (straight-use-package
-;;  '(claudemacs :type git :host github :repo "cpoile/claudemacs"))
-
-(define-key prog-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
-(define-key emacs-lisp-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
-(define-key text-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu)
-(with-eval-after-load 'python
-  (define-key python-base-mode-map (kbd "C-c C-e") #'claudemacs-transient-menu))
-
-;; Set a big buffer so we can search our history.
-
-;; Hightlight TODO
+;; Highlight TODO
 (use-package hl-todo
-  :ensure t
-  :defer t
   :hook ((prog-mode . hl-todo-mode)
          (LaTeX-mode . hl-todo-mode))
   :bind
@@ -1742,35 +1566,29 @@ the children of class at point."
           ("GOTCHA" . "#FF4500")
           ("STUB"   . "#1E90FF"))))
 
-;; AI
-
+;; AI — load on first use (C-c c / C-c C-')
 (use-package monet
-  :straight (monet :type git :host github :repo "stevemolitor/monet"))
+  :straight (monet :type git :host github :repo "stevemolitor/monet")
+  :commands monet-mode)
 
-;; install required inheritenv dependency:
 (use-package inheritenv
-  :straight (inheritenv :type git :host github :repo "purcell/inheritenv"))
+  :straight (inheritenv :type git :host github :repo "purcell/inheritenv")
+  :defer t)
 
-;; install claude-code.el
 (use-package claude-code
   :straight (claude-code :type git :host github :repo "stevemolitor/claude-code.el")
+  :bind-keymap ("C-c c" . claude-code-command-map)
+  :bind (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode))
   :config
-  ;; optional IDE integration with Monet
   (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
   (monet-mode 1)
-
-  (claude-code-mode)
-  :bind-keymap ("C-c c" . claude-code-command-map)
-
-  ;; Optionally define a repeat map so that "M" will cycle thru Claude auto-accept/plan/confirm modes after invoking claude-code-cycle-mode / C-c M.
-  :bind
-  (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
+  (claude-code-mode))
 
 (use-package claude-code-ide
   :straight (claude-code-ide :type git :host github :repo "manzaltu/claude-code-ide.el")
-  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
+  :bind ("C-c C-'" . claude-code-ide-menu)
   :config
-  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+  (claude-code-ide-emacs-tools-setup))
 
 ;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
 ;; ## end of OPAM user-setup addition for emacs / base ## keep this line
