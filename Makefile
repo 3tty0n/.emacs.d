@@ -14,8 +14,11 @@ $(SUBDIRS):
 %.elc: %.el
 	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
 
+setup:
+	./setup.sh
+
 clean:
 	$(RM) $(ELCS) session.*
 	$(MAKE) -C $(SUBDIRS) clean
 
-.PHONY: all clean $(SUBDIRS)
+.PHONY: all setup clean $(SUBDIRS)
