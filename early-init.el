@@ -1,7 +1,6 @@
 ;;; early-init.el --- Early startup tweaks -*- lexical-binding: t -*-
 
-;; Straight owns packages; never let package.el race it at startup.
-(setq package-enable-at-startup nil
+(setq package-enable-at-startup t
       package-quickstart nil
       frame-inhibit-implied-resize t
       frame-resize-pixelwise t

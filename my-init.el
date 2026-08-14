@@ -1,34 +1,10 @@
 ;;; my-init.el --- Personal Emacs config -*- lexical-binding: t; -*-
-
-;;; Commentary:
-;; Straight + use-package config. UI chrome is in early-init.el.
-;; Buffer display settings (e.g. display-line-numbers) live below and are kept as-is.
-
-;;; Code:
-
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name
-        "straight/repos/straight.el/bootstrap.el"
-        (or (bound-and-true-p straight-base-dir)
-            user-emacs-directory)))
-      (bootstrap-version 7))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
-
-(straight-use-package 'use-package)
-(setq straight-use-package-by-default t
-      ;; Skip git status scans at startup; check when you ask (`straight-pull-all`, etc.).
-      straight-check-for-modifications '(find-when-checking)
-      use-package-always-defer t
-      use-package-expand-minimally t
-      byte-compile-warnings '(cl-functions))
+(require 'package)
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives
+             '( "jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
+(package-initialize)
 
 (add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
 (when (eq system-type 'gnu/linux)
@@ -36,7 +12,6 @@
 
 (use-package bind-key)
 (use-package diminish)
-
 
 (use-package package-utils
   :commands (package-utils-upgrade-all package-utils-list-upgrades))
@@ -178,10 +153,6 @@
         eshell-prefer-lisp-functions nil
         eshell-destroy-buffer-when-process-dies t)
   (add-hook 'eshell-mode-hook (lambda () (display-line-numbers-mode -1))))
-
-(use-package esh-autosuggest
-  :defer t
-  :ensure t)
 
 (use-package eshell-prompt-extras
   :ensure t
@@ -523,7 +494,7 @@
   (load-theme 'spacemacs-dark t))
 
 (use-package doom-themes
-  :demand t
+  :ensure t
   :custom
   (doom-themes-enable-italic t)
   (doom-themes-enable-bold t)
@@ -543,6 +514,7 @@
 
 ;; XXX: hit M-x nerd-icons-install-fonts
 (use-package doom-modeline
+  :ensure t
   :hook (after-init . doom-modeline-mode))
 
 (use-package all-the-icons
@@ -662,7 +634,6 @@ the children of class at point."
   :hook (eglot-managed-mode . flycheck-eglot-mode))
 
 (use-package lsp-mode
-  :disabled
   :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
@@ -732,13 +703,13 @@ the children of class at point."
   :hook (sh-mode . flymake-shellcheck-load))
 
 (use-package flycheck
-  :hook (prog-mode . my-enable-flycheck-mode)
+  :ensure t
+  :init (add-hook 'after-init-hook #'global-flycheck-mode)
   :config
-  (defun my-enable-flycheck-mode ()
-    (my-enable-unless-large-file #'flycheck-mode))
   (setq flycheck-check-syntax-automatically '(save mode-enabled)
         flycheck-idle-change-delay 2.0)
   (use-package flycheck-pos-tip
+    :ensure t
     :if (display-graphic-p)
     :config
     (flycheck-pos-tip-mode)))
@@ -748,9 +719,11 @@ the children of class at point."
 
 ;; rainbow delimiters
 (use-package rainbow-delimiters
+  :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package ag
+  :ensure t
   :commands (ag ag-project ag-regexp))
 
 (defun my-filename-upto-parent ()
@@ -769,7 +742,7 @@ the children of class at point."
 
 (use-package vertico
   :ensure t
-  :defer t
+  ;; :defer t
   :bind (("C-l" . my-filename-upto-parent))
   :hook (after-init . vertico-mode)
   :custom
@@ -795,7 +768,6 @@ the children of class at point."
 
   ;; A few more useful configurations...
   (use-package emacs
-    :straight nil
     :init
     (defun crm-indicator (args)
       (cons (concat "[CRM] " (car args)) (cdr args)))
@@ -1054,6 +1026,7 @@ the children of class at point."
 
 ;; yasnippet — per-buffer, not global at startup
 (use-package yasnippet
+  :ensure t
   :hook ((prog-mode text-mode conf-mode) . yas-minor-mode)
   :config
   (yas-reload-all)
@@ -1162,7 +1135,6 @@ the children of class at point."
 
 ;; c
 (use-package cc-mode
-  :straight nil
   :defer t
   :config (setq c-basic-offset 4)
   :hook
@@ -1299,19 +1271,16 @@ the children of class at point."
             #'TeX-revert-document-buffer)
 
   (use-package auctex-latexmk
-    :straight nil
     :load-path "site-lisp/auctex-latexmk"
     :config
     (auctex-latexmk-setup)
     (setq shell-escape-mode t))
 
   (use-package company-auctex
-    :disabled
     :init
     (company-auctex-init))
 
   (use-package reftex
-    :straight nil
     :hook (LaTeX-mode . reftex-mode)
     :config
     (setq reftex-section-levels
@@ -1350,12 +1319,10 @@ the children of class at point."
 ;; Java CUP
 (use-package cup-java-mode
   :disabled
-  :straight nil
   :load-path "site-lisp/cup-java"
   :mode "\\.cup\\'")
 
 (use-package nxml-mode
-  :straight nil
   :mode (("\\.xml\\'" . nxml-mode)
          ("\\.xls\\'" . nxml-mode))
   :config
@@ -1392,7 +1359,6 @@ the children of class at point."
 
 ;; Python
 (use-package python
-  :straight nil
   :defer t
   :config
   (defun python-pytest ()
@@ -1550,6 +1516,7 @@ the children of class at point."
 
 ;; Highlight TODO
 (use-package hl-todo
+  :ensure t
   :hook ((prog-mode . hl-todo-mode)
          (LaTeX-mode . hl-todo-mode))
   :bind
@@ -1566,29 +1533,13 @@ the children of class at point."
           ("GOTCHA" . "#FF4500")
           ("STUB"   . "#1E90FF"))))
 
-;; AI — load on first use (C-c c / C-c C-')
-(use-package monet
-  :straight (monet :type git :host github :repo "stevemolitor/monet")
-  :commands monet-mode)
-
-(use-package inheritenv
-  :straight (inheritenv :type git :host github :repo "purcell/inheritenv")
-  :defer t)
-
-(use-package claude-code
-  :straight (claude-code :type git :host github :repo "stevemolitor/claude-code.el")
-  :bind-keymap ("C-c c" . claude-code-command-map)
-  :bind (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode))
-  :config
-  (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
-  (monet-mode 1)
-  (claude-code-mode))
-
 (use-package claude-code-ide
-  :straight (claude-code-ide :type git :host github :repo "manzaltu/claude-code-ide.el")
-  :bind ("C-c C-'" . claude-code-ide-menu)
+  :load-path "site-list/claude-code-ide.el"
+  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
-  (claude-code-ide-emacs-tools-setup))
+  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+
+(use-package chatgpt :ensure t)
 
 ;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
 ;; ## end of OPAM user-setup addition for emacs / base ## keep this line
