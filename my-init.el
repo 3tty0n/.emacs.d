@@ -1119,7 +1119,21 @@ the children of class at point."
 ;;; Web
 
 ;; E-mail
-;; (use-package my-mu4e :load-path "~/.mu4e.d")
+(use-package my-mu4e
+  :load-path "~/.mu4e.d"
+  :demand t)
+
+(load (expand-file-name "~/.xmail/.my-calendar.d/my-calendar.el")
+      nil nil t)
+
+(use-package excorporate-oauth2
+  :load-path "~/.emacs.d/site-lisp/excorporate-oauth2"
+  :demand t)
+
+(use-package calfw-excorporate
+  :load-path "~/.emacs.d/site-lisp/calfw-excorporate"
+  :after excorporate-oauth2
+  :demand t)
 
 ;;;;; Infra
 
