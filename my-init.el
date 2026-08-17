@@ -645,10 +645,11 @@ the children of class at point."
          (tuareg-mode     . lsp-deferred)
          (js-mode         . lsp-deferred)
          (racket-mode     . lsp-deferred)
-         ;; (julia-mode      . lsp-deferred)
+         (julia-mode      . lsp-deferred)
          ;; (c-mode . lsp-deferred)
          (python-mode     . lsp-deferred)
-         ;; (tuareg-mode . lsp-deferred)
+         (tuareg-mode     . lsp-deferred)
+         (java-mode       . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
@@ -662,6 +663,16 @@ the children of class at point."
     :hook (python-mode . (lambda ()
                            (require 'lsp-pyright)
                            (lsp))))  ; or lsp-deferred
+  (add-to-list 'lsp-disabled-clients 'semgrep-ls)
+  (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection '("/usr/bin/jdtls"))
+      :activation-fn (lsp-activate-on "java")
+      :server-id 'jdtls-system))
+  (use-package lsp-java
+    :ensure t
+    :config
+    (add-hook 'java-mode-hook #'lsp-deferred))
   (use-package lsp-jedi
     :ensure t)
   (use-package ccls
@@ -672,20 +683,20 @@ the children of class at point."
     (setq lsp-julia-default-environment "~/.julia/environments/v1.11")
     ))
 
-;; lsp-mode is disabled above. Keep optional lsp packages disabled too so
-;; startup does not try to install or activate mismatched dependencies.
-(use-package lsp-ui :disabled :ensure t :commands lsp-ui-mode :after lsp
+(use-package lsp-ui :ensure t :commands lsp-ui-mode :after lsp
   :config
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
-(use-package lsp-treemacs :disabled :ensure t :commands lsp-treemacs-errors-list :after lsp)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+  (setq lsp-ui-sideline-update-mode 'point))
+(use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list :after lsp)
 
 ;; optionally if you want to use debugger
-(use-package dap-mode :disabled :ensure t :after lsp)
+(use-package dap-mode :ensure t :after lsp)
 ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 ;; find definitions
 (use-package smart-jump
+  :ensure t
   :defer 2
   :config
   (smart-jump-setup-default-registers))
