@@ -1134,8 +1134,9 @@ the children of class at point."
   :load-path "~/.mu4e.d"
   :demand t)
 
-(load (expand-file-name "~/.xmail/.my-calendar.d/my-calendar.el")
-      nil nil t)
+(use-package my-calenar
+  :load-path "~/.my-calendar.d"
+  :demand t)
 
 (use-package excorporate-oauth2
   :load-path "~/.emacs.d/site-lisp/excorporate-oauth2"
@@ -1421,7 +1422,8 @@ the children of class at point."
 
 (use-package jupyter
   :ensure t
-  :defer t)
+  :defer t
+  :disabled t)
 
 ;; R
 (use-package ess
