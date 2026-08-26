@@ -22,6 +22,7 @@
   (global-set-key (kbd "<mouse-5>") #'scroll-up-line))
 
 (use-package exec-path-from-shell
+  :ensure t
   :if (memq window-system '(mac ns x))
   :hook (after-init . exec-path-from-shell-initialize))
 
@@ -39,9 +40,9 @@
   :disabled
   :commands esup)
 
-;; Startup screen (icons off = faster paint)
+;; Startup screen (icons off = faster paint). Skip when files are on argv.
 (use-package dashboard
-  :demand t
+  :unless command-line-args-left
   :config
   (setq dashboard-items '((recents . 10)
                           (projects . 10)
@@ -59,7 +60,30 @@
       use-short-answers t
       make-backup-files nil
       auto-save-default nil
-      create-lockfiles nil)
+      create-lockfiles nil
+      ;; Prefer side-by-side splits (preview/PDF/webkit on the right, not below).
+      split-width-threshold 120
+      split-height-threshold nil)
+
+;; Open preview-like buffers to the right of the source.
+(setq display-buffer-alist
+      (append
+       display-buffer-alist
+       '(((or (major-mode . pdf-view-mode)
+              (major-mode . xwidget-webkit-mode)
+              (major-mode . eww-mode))
+          (display-buffer-reuse-mode-window
+           display-buffer-in-side-window)
+          (mode pdf-view-mode xwidget-webkit-mode eww-mode)
+          (side . right)
+          (slot . 1)
+          (window-width . 0.5))
+         ("\\*\\(?:[Xx]widget\\|eww\\|Html.*\\).*\\*"
+          (display-buffer-in-side-window)
+          (side . right)
+          (slot . 1)
+          (window-width . 0.5)))))
+
 
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 
@@ -202,8 +226,8 @@
   :bind
   ("C-t". shell-pop)
   :custom
-  (shell-pop-internal-mode "eshell")
-  (shell-pop-shell-type (quote ("eshell" "*eshell*" (lambda nil (eshell shell-pop-term-shell)))))
+  (shell-pop-internal-mode "eat")
+  (shell-pop-shell-type (quote ("eat" "*eat*" (lambda nil (eshell shell-pop-term-shell)))))
   (shell-pop-term-shell "/usr/bin/zsh")
   (shell-pop-window-size 30)
   (shell-pop-full-span t)
@@ -222,6 +246,7 @@
 
 ;; smartparens
 (use-package smartparens
+  :ensure t
   :defer 0.3
   :config
   (require 'smartparens-config)
@@ -286,6 +311,7 @@
 
 ;; undo tree
 (use-package undo-tree
+  :ensure t
   :defer 0.5
   :config
   (setq undo-tree-enable-undo-in-region nil
@@ -529,6 +555,7 @@
 
 ;; completion
 (use-package orderless
+  :ensure t
   :demand t
   :config
   (setq completion-styles '(orderless basic)
@@ -536,6 +563,7 @@
         completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package company
+  :ensure t
   :defer 0.5
   :bind (("C-M-i" . company-complete)
          :map company-active-map
@@ -565,10 +593,11 @@
   :ensure t
   :defer t
   :commands (eglot eglot-ensure)
-  :hook ((python-mode . eglot-ensure)
+  :hook ( ;; (python-mode . eglot-ensure)
          (R-mode . eglot-ensure)
          (c-mode . eglot-ensure)
-         (LaTeX-mode . eglot-ensure))
+         ;; (LaTeX-mode . eglot-ensure)
+         )
   :config
   (setq eglot-autoshutdown t
         eglot-report-progress nil
@@ -656,6 +685,8 @@ the children of class at point."
   :config
   ;; remove header line
   (setq lsp-headerline-breadcrumb-enable nil)
+  ;; Use flymake like eglot; avoids flycheck "no checker" noise.
+  (setq lsp-diagnostics-provider :flymake)
 
   (use-package lsp-pyright
     :ensure t
@@ -701,11 +732,18 @@ the children of class at point."
   :config
   (smart-jump-setup-default-registers))
 
-;; syntax check — Flycheck in prog-mode; Flymake stays available for Eglot
+(defun my-enable-flymake ()
+  "Enable Flymake unless the current buffer is remote or large."
+  (my-enable-unless-large-file #'flymake-mode))
+
 (use-package flymake
-  :defer t
+  :hook (prog-mode . my-enable-flymake)
+  :bind (:map flymake-mode-map
+         ("M-n" . flymake-goto-next-error)
+         ("M-p" . flymake-goto-prev-error))
   :config
   (use-package flymake-diagnostic-at-point
+    :ensure t
     :after flymake
     :hook (flymake-mode . flymake-diagnostic-at-point-mode)))
 
@@ -713,18 +751,19 @@ the children of class at point."
   :commands flymake-shellcheck-load
   :hook (sh-mode . flymake-shellcheck-load))
 
+;; Prefer flymake (eglot/lsp). Keep flycheck available for M-x / language addons,
+;; but do not enable it globally — that spams "no checker" on every buffer.
 (use-package flycheck
   :ensure t
-  :init (add-hook 'after-init-hook #'global-flycheck-mode)
+  :defer t
+  :commands (flycheck-mode flycheck-list-errors)
   :config
   (setq flycheck-check-syntax-automatically '(save mode-enabled)
         flycheck-idle-change-delay 2.0)
   (use-package flycheck-pos-tip
     :ensure t
     :if (display-graphic-p)
-    :config
-    (flycheck-pos-tip-mode)))
-
+    :hook (flycheck-mode . flycheck-pos-tip-mode)))
 (use-package flycheck-ocaml :defer t)
 (use-package flycheck-mypy :defer t)
 
@@ -769,7 +808,7 @@ the children of class at point."
 
   (use-package marginalia
     :after vertico
-    :init
+    :config
     (marginalia-mode))
 
   ;; orderless is configured globally above
@@ -853,10 +892,6 @@ the children of class at point."
            ("M-s" . consult-history)                 ;; orig. next-matching-history-element
            ("M-r" . consult-history))                ;; orig. previous-matching-history-element
 
-    ;; Enable automatic preview at point in the *Completions* buffer. This is
-    ;; relevant when you use the default completion UI.
-    :hook (completion-list-mode . consult-preview-at-point-mode)
-
     ;; The :init configuration is always executed (Not lazy)
     :init
 
@@ -878,11 +913,11 @@ the children of class at point."
     ;; after lazily loading the package.
     :config
 
-    (defun consult-line-at-point (&optional at-point)
+    (defun consult-line-at-point ()
+      "Search the current buffer, starting from the symbol or word at point."
       (interactive)
-      (if at-point
-          (consult-line (thing-at-point 'symbol))
-        (consult-line)))
+      (consult-line (or (thing-at-point 'symbol t)
+                        (thing-at-point 'word t))))
 
     ;; Optionally configure preview. The default value
     ;; is 'any, such that any key triggers the preview.
@@ -1018,6 +1053,7 @@ the children of class at point."
   :bind ("C-c ." . imenu-anywhere))
 
 (use-package projectile
+  :ensure t
   :defer 0.8
   :bind-keymap (("C-c p" . projectile-command-map)
                 ("C-;" . projectile-command-map)
@@ -1081,6 +1117,7 @@ the children of class at point."
 
 ;; Magit
 (use-package magit
+  :ensure t
   :bind ("C-x g" . magit-status)
   :config
   (setq magit-auto-revert-mode nil
@@ -1134,7 +1171,7 @@ the children of class at point."
   :load-path "~/.mu4e.d"
   :demand t)
 
-(use-package my-calenar
+(use-package my-calendar
   :load-path "~/.my-calendar.d"
   :demand t)
 
@@ -1227,18 +1264,56 @@ the children of class at point."
 (use-package proof-general :disabled)
 
 ;; LaTeX
+(defun my-synctex-forward-search ()
+  "Jump from the TeX source at point to the matching PDF location."
+  (interactive)
+  (require 'pdf-tools)
+  (require 'pdf-occur)
+  (pdf-tools-install :no-query)
+  (require 'pdf-sync)
+  (TeX-pdf-tools-sync-view))
+
+(defun my-synctex-backward-search ()
+  "Jump from the current PDF view to the matching TeX source."
+  (interactive)
+  (require 'pdf-sync)
+  (pdf-util-assert-pdf-window)
+  (let* ((size (pdf-view-image-size))
+         (x (/ (float (car size)) 2))
+         (y (+ (or (window-vscroll nil t) 0)
+               (/ (float (window-body-height nil t)) 2))))
+    (pdf-sync-backward-search x y)))
+
+(defun my-synctex-search ()
+  "Forward search from TeX, or backward search from a PDF buffer."
+  (interactive)
+  (cond
+   ((derived-mode-p 'pdf-view-mode)
+    (my-synctex-backward-search))
+   ((derived-mode-p 'TeX-mode 'tex-mode 'LaTeX-mode 'latex-mode)
+    (my-synctex-forward-search))
+   (t
+    (user-error "SyncTeX works only in TeX or PDF buffers"))))
+
+(global-set-key (kbd "C-c C-g") #'my-synctex-search)
+
 (use-package pdf-tools
+  :ensure t
   :mode ("\\.pdf\\'" . pdf-view-mode)
   :magic ("%PDF" . pdf-view-mode)
-  :bind ("C-c C-g" . pdf-sync-forward-search)
-  :init
-  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
-  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
-  (add-hook 'pdf-tools-enabled-hook (lambda () (auto-revert-mode 1)))
+  :hook ((pdf-view-mode . (lambda () (display-line-numbers-mode -1)))
+         (pdf-tools-enabled . auto-revert-mode))
   :config
+  (require 'pdf-occur)
   (pdf-tools-install :no-query)
+  (require 'pdf-sync)
   (setq mouse-wheel-follow-mouse t
-        pdf-view-resize-factor 1.10))
+        pdf-view-resize-factor 1.10)
+  (define-key pdf-view-mode-map (kbd "C-c C-g") #'my-synctex-backward-search)
+  (define-key pdf-sync-minor-mode-map (kbd "C-c C-g") #'my-synctex-backward-search)
+  (define-key pdf-sync-minor-mode-map [mouse-3] #'pdf-sync-backward-search-mouse)
+  (define-key pdf-sync-minor-mode-map [double-mouse-1] #'pdf-sync-backward-search-mouse)
+  (define-key pdf-sync-minor-mode-map [C-mouse-1] #'pdf-sync-backward-search-mouse))
 
 (use-package languagetool
   :ensure t
@@ -1254,7 +1329,8 @@ the children of class at point."
         languagetool-console-command "~/.languagetool/languagetool-commandline.jar"
         languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
-(use-package auctex
+(use-package tex
+  :ensure auctex
   :mode ("\\.tex\\'" . LaTeX-mode)
   :config
   (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
@@ -1262,18 +1338,26 @@ the children of class at point."
   (add-hook 'LaTeX-mode-hook #'turn-on-auto-fill)
   (add-hook 'LaTeX-mode-hook #'display-fill-column-indicator-mode)
 
-  (when (eq system-type 'gnu/linux)
-    (setq TeX-view-program-selection '((output-pdf "Okular"))))
-
-  (setq TeX-parse-self t
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-method 'synctex
+        TeX-source-correlate-start-server t
+        TeX-parse-self t
         TeX-auto-save t
         TeX-clean-confirm t
         TeX-PDF-mode t
-        TeX-source-correlate-mode t
-        TeX-source-correlate-start-server t
         TeX-master t
-        reftex-plug-into-AUCTeX t
-        LaTeX-command-style '(("" "%(PDF)%(latex) -shell-escape -synctex=1 %S%(PDFout)")))
+        reftex-plug-into-AUCTeX t)
+  (setq-default TeX-command-extra-options "-shell-escape")
+
+  (TeX-source-correlate-mode 1)
+
+  (define-key TeX-mode-map (kbd "C-c C-g") #'my-synctex-forward-search)
+  (define-key TeX-source-correlate-map (kbd "C-c C-g") #'my-synctex-forward-search)
+  (with-eval-after-load 'latex
+    (define-key LaTeX-mode-map (kbd "C-c C-g") #'my-synctex-forward-search))
+
+  (add-hook 'TeX-after-compilation-finished-functions
+            #'TeX-revert-document-buffer)
 
   ;; Outline minor mode — extra outline headers
   (setq TeX-outline-extra
@@ -1293,14 +1377,11 @@ the children of class at point."
      ("^%subsubsection{\\(.*\\)}" 1 'font-latex-sectioning-4-face t)
      ("^%paragraph{\\(.*\\)}"     1 'font-latex-sectioning-5-face t)))
 
-  (add-hook 'TeX-after-compilation-finished-functions
-            #'TeX-revert-document-buffer)
-
   (use-package auctex-latexmk
-    :load-path "site-lisp/auctex-latexmk"
+    :ensure t
     :config
     (auctex-latexmk-setup)
-    (setq shell-escape-mode t))
+    (setq auctex-latexmk-inherit-TeX-PDF-mode t))
 
   (use-package company-auctex
     :init
@@ -1455,9 +1536,28 @@ the children of class at point."
 (use-package markdown-mode
   :mode (("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
+  :bind (:map markdown-mode-map
+         ("C-c g" . grip-mode)
+         :map markdown-mode-command-map
+         ("g" . grip-mode))
   :config
   (setq markdown-command
         "pandoc --from=markdown --to=html --standalone --mathjax --highlight-style=pygments"))
+
+;; Live Markdown/Org preview (`C-c g` or Markdown `C-c C-c g`)
+(use-package grip-mode
+  :ensure t
+  :commands grip-mode
+  :custom
+  (grip-command 'auto)
+  (grip-real-time-refresh t)
+  ;; Refresh on save only (avoids GitHub API rate limits while typing).
+  ;; Set to t for true as-you-type updates if you authenticate grip.
+  (grip-update-after-change nil)
+  :config
+  ;; Prefer in-Emacs webkit when available (opens on the right via display-buffer-alist).
+  (when (featurep 'xwidget-internal)
+    (setq grip-preview-in-webkit t)))
 
 ;; csv
 (use-package csv-mode
@@ -1473,7 +1573,9 @@ the children of class at point."
   :ensure t
   :defer t
   :bind (("C-c C-q" . org-capture)
-         ("C-c C-l" . org-store-link))
+         ("C-c C-l" . org-store-link)
+         :map org-mode-map
+         ("C-c g" . grip-mode))
   :custom
   (org-use-speed-commands t)
   (org-startup-folded t)
@@ -1536,6 +1638,7 @@ the children of class at point."
 
 ;; AI agent
 (use-package eat
+  :ensure t
   :commands (eat eat-other-window)
   :config
   (setq eat-term-scrollback-size 400000)
@@ -1543,6 +1646,7 @@ the children of class at point."
 
 ;; Highlight TODO
 (use-package hl-todo
+  :disabled
   :ensure t
   :hook ((prog-mode . hl-todo-mode)
          (LaTeX-mode . hl-todo-mode))
@@ -1560,13 +1664,58 @@ the children of class at point."
           ("GOTCHA" . "#FF4500")
           ("STUB"   . "#1E90FF"))))
 
+
+(use-package obsidian
+  :ensure t
+  :config
+  (global-obsidian-mode t)
+  (obsidian-backlinks-mode t)
+  :custom
+  ;; location of obsidian vault
+  (obsidian-directory "~/Obsidian")
+  ;; Default location for new notes from `obsidian-capture'
+  (obsidian-inbox-directory "Inbox")
+  ;; Useful if you're going to be using wiki links
+  (markdown-enable-wiki-links t)
+
+  ;; These bindings are only suggestions; it's okay to use other bindings
+  :bind (:map obsidian-mode-map
+              ;; Create note
+              ("C-c C-n" . obsidian-capture)
+              ;; If you prefer you can use `obsidian-insert-wikilink'
+              ("C-c C-l" . obsidian-insert-link)
+              ;; Open file pointed to by link at point
+              ("C-c C-o" . obsidian-follow-link-at-point)
+              ;; Open a different note from vault
+              ("C-c C-p" . obsidian-jump)
+              ;; Follow a backlink for the current file
+              ("C-c C-b" . obsidian-backlink-jump)))
+
+
 (use-package claude-code-ide
   :load-path "site-list/claude-code-ide.el"
   :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
   (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
 
-(use-package chatgpt :ensure t)
+(use-package agent-shell
+  :ensure t
+  :ensure-system-package
+  ;; Add agent installation configs here
+  ()
+  :config
+  (setq agent-shell-openai-authentication
+        (agent-shell-openai-make-authentication :login t))
+
+  (defun my-agent-shell-consult-reveal-fragment ()
+    "Expand a collapsed agent-shell fragment so a consult match is visible."
+    (when (derived-mode-p 'agent-shell-mode)
+      (when-let* ((state (get-text-property (point) 'agent-shell-ui-state))
+                  ((map-elt state :collapsed)))
+        (agent-shell-ui--toggle-fragment-at-point))))
+  (add-hook 'consult-after-jump-hook #'my-agent-shell-consult-reveal-fragment))
+
+
 
 ;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
 ;; ## end of OPAM user-setup addition for emacs / base ## keep this line

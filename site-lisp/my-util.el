@@ -60,8 +60,9 @@
 
 (add-hook 'window-setup-hook
           (lambda ()
-            (set-alpha 97)
-            (set-frame-size-according-to-resolution)))
+            (when (display-graphic-p)
+              (set-alpha 97)
+              (set-frame-size-according-to-resolution))))
 
 (defun back-to-indentation-or-beginning ()
   (interactive)
@@ -130,17 +131,23 @@ When there is a text selection, act on the region."
       (put this-command 'stateIsCompact-p (if currentStateIsCompact nil t)) ) ) )
 
 (defun my-copy-simple (beg end)
-  "Save the current region to the kill ring after stripping extra whitespace and new lines"
+  "Copy the region to the kill ring, joining wrapped lines.
+
+Paragraph breaks are kept.  Only newlines inside a paragraph are
+replaced by spaces."
   (interactive "r")
-  (copy-region-as-kill beg end)
-  (with-temp-buffer
-    (yank)
-    (goto-char 0)
-    (while (looking-at "[ \t\n]")
-      (delete-char 1))
-    (compact-uncompact-block)
-    (mark-whole-buffer)
-    (kill-region (point-min) (point-max))))
+  (require 'subr-x)
+  (let* ((raw (buffer-substring-no-properties beg end))
+         (paragraphs (split-string raw "\r?\n\\(?:[ \t]*\r?\n\\)+" t))
+         (unfilled (mapcar (lambda (paragraph)
+                             (string-trim
+                              (replace-regexp-in-string
+                               "[ \t]*\r?\n[ \t]*" " " paragraph)))
+                           paragraphs))
+         (text (string-trim (mapconcat #'identity unfilled "\n\n"))))
+    (kill-new text)
+    (setq deactivate-mark t)
+    (message "Copied %d characters" (length text))))
 
 (provide 'my-util)
 ;;;  my-util.el ends here
