@@ -56,3 +56,5 @@ ido.last
 .python-environments/
 
 site-lisp/**
+
+package-quickstart.el
