@@ -8,6 +8,10 @@
       inhibit-startup-message t
       inhibit-compacting-font-caches t
       read-process-output-max (* 1024 1024)
+      ;; Let JIT fontification wait briefly while the user is typing.
+      ;; This keeps redisplay/input responsive in large source buffers.
+      jit-lock-defer-time 0.2
+      jit-lock-stealth-time nil
       gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6)
 

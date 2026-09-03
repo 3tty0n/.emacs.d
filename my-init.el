@@ -110,6 +110,26 @@
   (unless (my-large-file-p)
     (funcall mode 1)))
 
+(defun my-configure-line-numbers ()
+  "Keep line numbers in normal buffers, but omit them in large buffers."
+  (display-line-numbers-mode (if (my-large-file-p) -1 1)))
+
+(defun my-large-buffer-performance-setup ()
+  "Disable input-sensitive display features in large or remote buffers."
+  (when (my-large-file-p)
+    (display-line-numbers-mode -1)
+    (when (fboundp 'show-paren-local-mode)
+      (show-paren-local-mode -1))
+    ;; Company remains available for explicit use, but does not start an
+    ;; expensive completion search after every pause in a large buffer.
+    (setq-local company-idle-delay nil
+                company-backends '(company-capf))
+    (setq-local jit-lock-defer-time 0.25)))
+
+(add-hook 'prog-mode-hook #'my-large-buffer-performance-setup)
+(add-hook 'conf-mode-hook #'my-large-buffer-performance-setup)
+(add-hook 'find-file-hook #'my-large-buffer-performance-setup)
+
 (use-package whitespace
   :hook ((prog-mode text-mode conf-mode) . my-enable-whitespace-mode)
   :config
@@ -240,17 +260,33 @@
 (setq recentf-max-saved-items 200)
 
 (show-paren-mode 1)
+(defun my-lisp-disable-paren-scan ()
+  "Do not scan matching parens; it walks the whole sexp on every move."
+  (setq-local show-paren-data-function #'ignore)
+  (if (fboundp 'show-paren-local-mode)
+      (show-paren-local-mode -1)
+    (setq-local show-paren-mode nil)))
+(dolist (hook '(lisp-data-mode-hook lisp-mode-hook emacs-lisp-mode-hook))
+  (add-hook hook #'my-lisp-disable-paren-scan))
 (when (fboundp 'repeat-mode)
   (repeat-mode 1))
 
-;; smartparens
-(use-package smartparens
-  :ensure t
-  :defer 0.3
-  :config
-  (require 'smartparens-config)
-  (sp-pair "`" "`" :actions nil)
-  (smartparens-global-mode 1))
+(setq redisplay-skip-fontification-on-input t
+      fast-but-imprecise-scrolling t
+      bidi-inhibit-bpa t)
+(setq-default bidi-paragraph-direction 'left-to-right)
+
+;; Auto-pair: no sexp-balance scan (that is what made typing `(` crawl in my-init.el)
+(electric-pair-mode 1)
+(setq electric-pair-preserve-balance nil
+      blink-matching-paren nil
+      electric-pair-inhibit-predicate
+      (lambda (c)
+        (or (eq c ?`)
+            (electric-pair-conservative-inhibit c))))
+(with-eval-after-load 'smartparens
+  (smartparens-global-mode -1)
+  (show-smartparens-global-mode -1))
 
 (setq scroll-conservatively 10
       scroll-margin 10)
@@ -273,15 +309,13 @@
 
 (if (version<= "26.0.50" emacs-version)
     (progn
-      (add-hook 'prog-mode-hook #'display-line-numbers-mode)
-      (add-hook 'conf-mode-hook #'display-line-numbers-mode)
+      (add-hook 'prog-mode-hook #'my-configure-line-numbers)
+      (add-hook 'conf-mode-hook #'my-configure-line-numbers)
       (set-face-attribute 'line-number nil
                           :foreground "DarkOliveGreen"
                           :background "#131521")
       (set-face-attribute 'line-number-current-line nil
                           :foreground "gold")))
-
-(global-display-line-numbers-mode 1)
 
 ;; set C-h to backspace
 (global-set-key (kbd "C-h") #'backward-char)
@@ -293,12 +327,27 @@
   (prog-mode . my-enable-highlight-indent-guides-mode)
   :config
   (defun my-enable-highlight-indent-guides-mode ()
-    (my-enable-unless-large-file #'highlight-indent-guides-mode))
-  (setq highlight-indent-guides-method 'character))
+    (unless (derived-mode-p 'lisp-data-mode 'lisp-mode)
+      (my-enable-unless-large-file #'highlight-indent-guides-mode)))
+  (setq highlight-indent-guides-method 'bitmap))
 
 ;; font config / utilities
 (require 'my-font)
 (require 'my-util)
+
+;; Avoid redisplay stalls in minified files with extremely long lines.  Keep
+;; the original major mode and editing enabled so this remains a mitigation,
+;; not a read-only fallback.
+(use-package so-long
+  :ensure nil
+  :demand t
+  :config
+  (setq so-long-action 'so-long-minor-mode
+        so-long-variable-overrides
+        (assq-delete-all 'buffer-read-only so-long-variable-overrides))
+  (dolist (mode '(company-mode highlight-indent-guides-mode))
+    (add-to-list 'so-long-minor-modes mode))
+  (global-so-long-mode 1))
 
 ;; toggle truncate lines
 (global-set-key (kbd "C-c t") #'toggle-truncate-lines)
@@ -311,10 +360,18 @@
 ;; undo tree
 (use-package undo-tree
   :ensure t
-  :defer 0.5
-  :config
+  ;; This used to be deferred via an idle timer.  That made the global mode
+  ;; appear randomly unavailable during startup and also made its state hard
+  ;; to reason about.  Loading this small package eagerly is cheap and makes
+  ;; undo-tree deterministic.
+  :demand t
+  :init
   (setq undo-tree-enable-undo-in-region nil
         undo-tree-auto-save-history nil)
+  :config
+  ;; Undo-tree itself does not run a per-keystroke scan.  Keep it enabled in
+  ;; large buffers too; only pathological long-line mitigation may disable
+  ;; other display/checker modes above.
   (global-undo-tree-mode 1))
 
 ;; dired
@@ -587,20 +644,30 @@
   (push 'company-preview-common-frontend company-frontends)
   (global-company-mode 1))
 
+(defun my-company-large-buffer-setup ()
+  "Make Company manual-only in large or remote buffers."
+  (when (my-large-file-p)
+    (setq-local company-idle-delay nil
+                company-backends '(company-capf))))
+
+(add-hook 'company-mode-hook #'my-company-large-buffer-setup)
+
 ;; lsp
 (use-package eglot
   :ensure t
   :defer t
   :commands (eglot eglot-ensure)
-  :hook ( ;; (python-mode . eglot-ensure)
-         (R-mode . eglot-ensure)
+  :hook ((R-mode . eglot-ensure)
          (c-mode . eglot-ensure)
+         ;; (python-mode . eglot-ensure)
          ;; (LaTeX-mode . eglot-ensure)
          )
   :config
   (setq eglot-autoshutdown t
         eglot-report-progress nil
         eglot-send-changes-idle-time 1.0
+        eglot-events-buffer-config '(:size 0 :format short)
+        eglot-code-action-indications nil
         eglot-ignored-server-capabilities
         '(:documentHighlightProvider
           :inlayHintProvider
@@ -616,7 +683,15 @@
   (defun my-eglot-lightweight-settings ()
     "Reduce per-keystroke UI work in Eglot buffers."
     (setq-local eldoc-idle-delay 1.0
-                eldoc-echo-area-use-multiline-p nil)
+                eldoc-echo-area-use-multiline-p nil
+                company-idle-delay (if (my-large-file-p) nil 0.4)
+                company-backends '(company-capf))
+    (when (and (my-large-file-p) (fboundp 'flymake-mode))
+      (flymake-mode -1))
+    (when (fboundp 'flymake-diagnostic-at-point-mode)
+      (flymake-diagnostic-at-point-mode -1))
+    (when (fboundp 'flycheck-mode)
+      (flycheck-mode -1))
     (when (fboundp 'eglot-inlay-hints-mode)
       (eglot-inlay-hints-mode -1)))
 
@@ -665,9 +740,23 @@ the children of class at point."
   :ensure t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-keymap-prefix "C-c l")
+  (setq lsp-keymap-prefix "C-c l"
+        lsp-log-io nil
+        lsp-keep-workspace-alive nil
+        lsp-idle-delay 0.8
+        lsp-enable-symbol-highlighting nil
+        lsp-enable-on-type-formatting nil
+        lsp-enable-folding nil
+        lsp-enable-imenu nil
+        lsp-enable-file-watchers nil
+        lsp-eldoc-enable-hover nil
+        lsp-semantic-tokens-enable nil
+        lsp-headerline-breadcrumb-enable nil
+        lsp-modeline-code-actions-enable nil
+        lsp-modeline-diagnostics-enable nil
+        lsp-modeline-workspace-status-enable nil)
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (LaTeX-mode      . lsp-deferred)
+         ;; (LaTeX-mode      . lsp-deferred)
          (rust-mode       . lsp-deferred)
          (typescript-mode . lsp-deferred)
          (tuareg-mode     . lsp-deferred)
@@ -676,23 +765,31 @@ the children of class at point."
          (julia-mode      . lsp-deferred)
          ;; (c-mode . lsp-deferred)
          (python-mode     . lsp-deferred)
-         (tuareg-mode     . lsp-deferred)
          (java-mode       . lsp-deferred)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp
   :config
-  ;; remove header line
-  (setq lsp-headerline-breadcrumb-enable nil)
   ;; Use flymake like eglot; avoids flycheck "no checker" noise.
   (setq lsp-diagnostics-provider :flymake)
+  ;; Keep modeline updates quiet as well; diagnostics remain available through
+  ;; Flycheck when it is enabled.
+  (with-eval-after-load 'lsp-modeline
+    (setq lsp-modeline-code-actions-enable nil
+          lsp-modeline-diagnostics-enable nil
+          lsp-modeline-workspace-status-enable nil))
+
+  (defun my-lsp-lightweight-settings ()
+    "Reduce point/change-triggered UI work in LSP buffers."
+    (setq-local eldoc-idle-delay 1.0
+                company-idle-delay (if (my-large-file-p) nil 0.4)
+                company-backends '(company-capf)))
+
+  (add-hook 'lsp-mode-hook #'my-lsp-lightweight-settings)
 
   (use-package lsp-pyright
     :ensure t
-    :custom (lsp-pyright-langserver-command "pyright") ;; or basedpyright
-    :hook (python-mode . (lambda ()
-                           (require 'lsp-pyright)
-                           (lsp))))  ; or lsp-deferred
+    :custom (lsp-pyright-langserver-command "pyright")) ;; or basedpyright
   (add-to-list 'lsp-disabled-clients 'semgrep-ls)
   (lsp-register-client
      (make-lsp-client
@@ -700,9 +797,10 @@ the children of class at point."
       :activation-fn (lsp-activate-on "java")
       :server-id 'jdtls-system))
   (use-package lsp-java
-    :ensure t
-    :config
-    (add-hook 'java-mode-hook #'lsp-deferred))
+    ;; The system jdtls client registered above is used instead.  Keep this
+    ;; optional package from producing a startup error when it is not installed.
+    :disabled
+    :ensure t)
   (use-package lsp-jedi
     :ensure t)
   (use-package ccls
@@ -740,6 +838,11 @@ the children of class at point."
   :bind (:map flymake-mode-map
          ("M-n" . flymake-goto-next-error)
          ("M-p" . flymake-goto-prev-error))
+  :defer t
+  :init
+  ;; Eglot already waits before sending document changes.  Avoid starting a
+  ;; second syntax-check timer almost immediately after every edit.
+  (setq flymake-no-changes-timeout 1.0)
   :config
   (use-package flymake-diagnostic-at-point
     :ensure t
@@ -757,7 +860,7 @@ the children of class at point."
   :defer t
   :commands (flycheck-mode flycheck-list-errors)
   :config
-  (setq flycheck-check-syntax-automatically '(save mode-enabled)
+  (setq flycheck-check-syntax-automatically '(save)
         flycheck-idle-change-delay 2.0)
   (use-package flycheck-pos-tip
     :ensure t
@@ -769,7 +872,11 @@ the children of class at point."
 ;; rainbow delimiters
 (use-package rainbow-delimiters
   :ensure t
-  :hook (prog-mode . rainbow-delimiters-mode))
+  :hook (prog-mode . my-enable-rainbow-delimiters)
+  :config
+  (defun my-enable-rainbow-delimiters ()
+    (unless (derived-mode-p 'emacs-lisp-mode)
+      (my-enable-unless-large-file #'rainbow-delimiters-mode))))
 
 (use-package ag
   :ensure t
