@@ -205,7 +205,6 @@
 
 (use-package vterm
   :ensure t
-  :disabled
   :init
   (add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
   :bind
