@@ -6,6 +6,173 @@
              '( "jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
 (package-initialize)
 
+;; Do not install packages while starting Emacs.  `use-package' normally
+;; calls `package-refresh-contents' when a package named by `:ensure' is not
+;; installed yet; that makes every startup depend on MELPA being reachable.
+;; Missing packages are installed automatically only after startup, when a
+;; real user-triggered load needs them.
+(require 'use-package)
+(defvar my-use-package-missing-packages nil
+  "Packages requested by `use-package' but not installed locally.")
+(defvar my-use-package-package-aliases (make-hash-table :test #'eq)
+  "Map package features and file names to packages declared with `:ensure'.")
+(defvar my-use-package-package-specs (make-hash-table :test #'eq)
+  "Map package names to their original `use-package' ensure specifications.")
+(defvar my-use-package--installing-packages nil
+  "Packages currently being installed on demand.")
+(defvar my-use-package--install-attempted-packages nil
+  "Packages for which on-demand installation was already attempted.")
+(defvar my-use-package-startup-phase t
+  "Non-nil while startup loads and configures packages.")
+
+(defun my-use-package-finish-startup ()
+  "Allow lazy package installation after the initial startup is complete."
+  (setq my-use-package-startup-phase nil))
+
+(add-hook 'emacs-startup-hook #'my-use-package-finish-startup)
+
+(defun my-use-package--remember-package (name ensure package)
+  "Remember PACKAGE and its USE-PACKAGE feature alias and specification."
+  (puthash (use-package-as-symbol name) package
+           my-use-package-package-aliases)
+  (puthash package package my-use-package-package-aliases)
+  (puthash package (list name ensure) my-use-package-package-specs))
+
+(defun my-use-package-ensure-local-only (name args _state)
+  "Check packages locally and defer missing installs until they are loaded."
+  (let ((all-installed t))
+    (dolist (ensure args all-installed)
+      (let ((package (cond
+                      ((eq ensure t) (use-package-as-symbol name))
+                      ((consp ensure) (car ensure))
+                      ((symbolp ensure) ensure))))
+        (when (and package (not (package-installed-p package)))
+          (setq all-installed nil)
+          (my-use-package--remember-package name ensure package)
+          (add-to-list 'my-use-package-missing-packages package))))))
+
+(setq use-package-ensure-function #'my-use-package-ensure-local-only)
+
+(defun my-use-package--package-for-key (key)
+  "Return the deferred package associated with feature or file KEY."
+  (unless my-use-package--installing-packages
+    (gethash (if (symbolp key) key (intern key))
+             my-use-package-package-aliases)))
+
+(defun my-use-package--package-for-load (file)
+  "Return the deferred package associated with FILE loaded by an autoload."
+  (let* ((name (file-name-nondirectory (format "%s" file)))
+         (base (file-name-sans-extension name)))
+    (when (string-suffix-p ".el" base)
+      (setq base (file-name-sans-extension base)))
+    (my-use-package--package-for-key base)))
+
+(defun my-use-package--install-package (package)
+  "Install PACKAGE once, when its first actual load is requested."
+  (when (and package
+             (not my-use-package-startup-phase)
+             (not (package-installed-p package)))
+    (unless (memq package my-use-package--install-attempted-packages)
+      (push package my-use-package--install-attempted-packages)
+      (let* ((spec (gethash package my-use-package-package-specs))
+             (name (or (nth 0 spec) package))
+             (ensure (or (nth 1 spec) t))
+             (my-use-package--installing-packages
+              (cons package my-use-package--installing-packages)))
+        ;; Use the standard installer only at the point where the package is
+        ;; genuinely needed.  This is the only path that may contact MELPA.
+        (use-package-ensure-elpa name (list ensure) nil))))
+  (when (package-installed-p package)
+    (setq my-use-package-missing-packages
+          (delq package my-use-package-missing-packages))
+    t))
+
+(defun my-use-package--require-around (orig feature &optional filename noerror)
+  "Install a declared package if a real `require' needs it."
+  (let ((missing-error nil)
+        (result nil))
+    (condition-case err
+        (setq result (funcall orig feature filename noerror))
+      (file-missing
+       (setq missing-error err)))
+    (if (or result (featurep feature))
+        result
+      (let ((package (my-use-package--package-for-key feature)))
+        (if (and package (my-use-package--install-package package))
+            (funcall orig feature filename noerror)
+          (if missing-error
+              (signal (car missing-error) (cdr missing-error))
+            result))))))
+
+(defun my-use-package--load-around (orig file &rest args)
+  "Install a declared package if an autoload needs its missing FILE."
+  (let ((missing-error nil)
+        (result nil))
+    (condition-case err
+        (setq result (apply orig file args))
+      (file-missing
+       (setq missing-error err)))
+    (if result
+        result
+      (let ((package (my-use-package--package-for-load file)))
+        (if (and package (my-use-package--install-package package))
+            (apply orig file args)
+          (if missing-error
+            (signal (car missing-error) (cdr missing-error))
+            result))))))
+
+(defun my-use-package--make-lazy-autoload
+    (function file package autoload-definition)
+  "Return a command wrapper that installs PACKAGE before loading FILE."
+  (let ((command function)
+        (original autoload-definition))
+    (lambda (&rest args)
+      (interactive)
+      ;; Restore the real autoload while installing.  `package-install' may
+      ;; itself refresh the package's autoload definitions.
+      (fset command original)
+      (let ((installed (my-use-package--install-package package)))
+        (cond
+         (installed
+          (if (called-interactively-p 'interactive)
+              (call-interactively command)
+            (apply command args)))
+         (my-use-package-startup-phase
+          ;; Do not lose the lazy wrapper if a command was accidentally
+          ;; invoked during startup, before installation is permitted.
+          (fset command
+                (my-use-package--make-lazy-autoload
+                 command file package original))
+          ;; Preserve the usual missing-file error for this invocation.
+          (autoload-do-load original command nil))
+         (t
+          ;; Installation failed after startup; preserve the usual autoload
+          ;; error instead of silently swallowing the command invocation.
+          (if (called-interactively-p 'interactive)
+              (call-interactively command)
+            (apply command args))))))))
+
+(defun my-use-package--autoload-around
+    (orig function file &optional docstring interactive type)
+  "Wrap missing declared command autoloads with on-demand installation."
+  (let ((result (funcall orig function file docstring interactive type)))
+    (when (and (symbolp function)
+               interactive
+               (autoloadp (symbol-function function)))
+      (let ((package (my-use-package--package-for-load file)))
+        (when package
+          (fset function
+                (my-use-package--make-lazy-autoload
+                 function file package (symbol-function function))))))
+    result))
+
+(unless (advice-member-p #'my-use-package--require-around 'require)
+  (advice-add 'require :around #'my-use-package--require-around))
+(unless (advice-member-p #'my-use-package--load-around 'load)
+  (advice-add 'load :around #'my-use-package--load-around))
+(unless (advice-member-p #'my-use-package--autoload-around 'autoload)
+  (advice-add 'autoload :around #'my-use-package--autoload-around))
+
 (add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
 (when (eq system-type 'gnu/linux)
   (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
@@ -1773,6 +1940,12 @@ the children of class at point."
 
 (use-package obsidian
   :ensure t
+  :defer t
+  :commands (obsidian-capture
+             obsidian-follow-link-at-point
+             obsidian-jump
+             obsidian-insert-link
+             obsidian-backlink-jump)
   :config
   (global-obsidian-mode t)
   (obsidian-backlinks-mode t)
@@ -1806,9 +1979,8 @@ the children of class at point."
 
 (use-package agent-shell
   :ensure t
-  :ensure-system-package
-  ;; Add agent installation configs here
-  ()
+  :defer t
+  :commands agent-shell
   :config
   (setq agent-shell-openai-authentication
         (agent-shell-openai-make-authentication :login t))
