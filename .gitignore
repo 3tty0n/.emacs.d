@@ -56,5 +56,6 @@ ido.last
 .python-environments/
 
 site-lisp/**
+!site-lisp/my-lazy-package.el
 
 package-quickstart.el
