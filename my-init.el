@@ -6,176 +6,12 @@
              '( "jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
 (package-initialize)
 
-;; Do not install packages while starting Emacs.  `use-package' normally
-;; calls `package-refresh-contents' when a package named by `:ensure' is not
-;; installed yet; that makes every startup depend on MELPA being reachable.
-;; Missing packages are installed automatically only after startup, when a
-;; real user-triggered load needs them.
-(require 'use-package)
-(defvar my-use-package-missing-packages nil
-  "Packages requested by `use-package' but not installed locally.")
-(defvar my-use-package-package-aliases (make-hash-table :test #'eq)
-  "Map package features and file names to packages declared with `:ensure'.")
-(defvar my-use-package-package-specs (make-hash-table :test #'eq)
-  "Map package names to their original `use-package' ensure specifications.")
-(defvar my-use-package--installing-packages nil
-  "Packages currently being installed on demand.")
-(defvar my-use-package--install-attempted-packages nil
-  "Packages for which on-demand installation was already attempted.")
-(defvar my-use-package-startup-phase t
-  "Non-nil while startup loads and configures packages.")
-
-(defun my-use-package-finish-startup ()
-  "Allow lazy package installation after the initial startup is complete."
-  (setq my-use-package-startup-phase nil))
-
-(add-hook 'emacs-startup-hook #'my-use-package-finish-startup)
-
-(defun my-use-package--remember-package (name ensure package)
-  "Remember PACKAGE and its USE-PACKAGE feature alias and specification."
-  (puthash (use-package-as-symbol name) package
-           my-use-package-package-aliases)
-  (puthash package package my-use-package-package-aliases)
-  (puthash package (list name ensure) my-use-package-package-specs))
-
-(defun my-use-package-ensure-local-only (name args _state)
-  "Check packages locally and defer missing installs until they are loaded."
-  (let ((all-installed t))
-    (dolist (ensure args all-installed)
-      (let ((package (cond
-                      ((eq ensure t) (use-package-as-symbol name))
-                      ((consp ensure) (car ensure))
-                      ((symbolp ensure) ensure))))
-        (when (and package (not (package-installed-p package)))
-          (setq all-installed nil)
-          (my-use-package--remember-package name ensure package)
-          (add-to-list 'my-use-package-missing-packages package))))))
-
-(setq use-package-ensure-function #'my-use-package-ensure-local-only)
-
-(defun my-use-package--package-for-key (key)
-  "Return the deferred package associated with feature or file KEY."
-  (unless my-use-package--installing-packages
-    (gethash (if (symbolp key) key (intern key))
-             my-use-package-package-aliases)))
-
-(defun my-use-package--package-for-load (file)
-  "Return the deferred package associated with FILE loaded by an autoload."
-  (let* ((name (file-name-nondirectory (format "%s" file)))
-         (base (file-name-sans-extension name)))
-    (when (string-suffix-p ".el" base)
-      (setq base (file-name-sans-extension base)))
-    (my-use-package--package-for-key base)))
-
-(defun my-use-package--install-package (package)
-  "Install PACKAGE once, when its first actual load is requested."
-  (when (and package
-             (not my-use-package-startup-phase)
-             (not (package-installed-p package)))
-    (unless (memq package my-use-package--install-attempted-packages)
-      (push package my-use-package--install-attempted-packages)
-      (let* ((spec (gethash package my-use-package-package-specs))
-             (name (or (nth 0 spec) package))
-             (ensure (or (nth 1 spec) t))
-             (my-use-package--installing-packages
-              (cons package my-use-package--installing-packages)))
-        ;; Use the standard installer only at the point where the package is
-        ;; genuinely needed.  This is the only path that may contact MELPA.
-        (use-package-ensure-elpa name (list ensure) nil))))
-  (when (package-installed-p package)
-    (setq my-use-package-missing-packages
-          (delq package my-use-package-missing-packages))
-    t))
-
-(defun my-use-package--require-around (orig feature &optional filename noerror)
-  "Install a declared package if a real `require' needs it."
-  (let ((missing-error nil)
-        (result nil))
-    (condition-case err
-        (setq result (funcall orig feature filename noerror))
-      (file-missing
-       (setq missing-error err)))
-    (if (or result (featurep feature))
-        result
-      (let ((package (my-use-package--package-for-key feature)))
-        (if (and package (my-use-package--install-package package))
-            (funcall orig feature filename noerror)
-          (if missing-error
-              (signal (car missing-error) (cdr missing-error))
-            result))))))
-
-(defun my-use-package--load-around (orig file &rest args)
-  "Install a declared package if an autoload needs its missing FILE."
-  (let ((missing-error nil)
-        (result nil))
-    (condition-case err
-        (setq result (apply orig file args))
-      (file-missing
-       (setq missing-error err)))
-    (if result
-        result
-      (let ((package (my-use-package--package-for-load file)))
-        (if (and package (my-use-package--install-package package))
-            (apply orig file args)
-          (if missing-error
-            (signal (car missing-error) (cdr missing-error))
-            result))))))
-
-(defun my-use-package--make-lazy-autoload
-    (function file package autoload-definition)
-  "Return a command wrapper that installs PACKAGE before loading FILE."
-  (let ((command function)
-        (original autoload-definition))
-    (lambda (&rest args)
-      (interactive)
-      ;; Restore the real autoload while installing.  `package-install' may
-      ;; itself refresh the package's autoload definitions.
-      (fset command original)
-      (let ((installed (my-use-package--install-package package)))
-        (cond
-         (installed
-          (if (called-interactively-p 'interactive)
-              (call-interactively command)
-            (apply command args)))
-         (my-use-package-startup-phase
-          ;; Do not lose the lazy wrapper if a command was accidentally
-          ;; invoked during startup, before installation is permitted.
-          (fset command
-                (my-use-package--make-lazy-autoload
-                 command file package original))
-          ;; Preserve the usual missing-file error for this invocation.
-          (autoload-do-load original command nil))
-         (t
-          ;; Installation failed after startup; preserve the usual autoload
-          ;; error instead of silently swallowing the command invocation.
-          (if (called-interactively-p 'interactive)
-              (call-interactively command)
-            (apply command args))))))))
-
-(defun my-use-package--autoload-around
-    (orig function file &optional docstring interactive type)
-  "Wrap missing declared command autoloads with on-demand installation."
-  (let ((result (funcall orig function file docstring interactive type)))
-    (when (and (symbolp function)
-               interactive
-               (autoloadp (symbol-function function)))
-      (let ((package (my-use-package--package-for-load file)))
-        (when package
-          (fset function
-                (my-use-package--make-lazy-autoload
-                 function file package (symbol-function function))))))
-    result))
-
-(unless (advice-member-p #'my-use-package--require-around 'require)
-  (advice-add 'require :around #'my-use-package--require-around))
-(unless (advice-member-p #'my-use-package--load-around 'load)
-  (advice-add 'load :around #'my-use-package--load-around))
-(unless (advice-member-p #'my-use-package--autoload-around 'autoload)
-  (advice-add 'autoload :around #'my-use-package--autoload-around))
-
 (add-to-list 'load-path (expand-file-name "site-lisp" user-emacs-directory))
 (when (eq system-type 'gnu/linux)
   (add-to-list 'load-path "/usr/share/emacs/site-lisp"))
+
+(require 'my-lazy-package)
+(my-lazy-package-mode 1)
 
 (use-package bind-key)
 (use-package diminish)
@@ -1039,7 +875,7 @@ the children of class at point."
 ;; rainbow delimiters
 (use-package rainbow-delimiters
   :ensure t
-  :hook (prog-mode . my-enable-rainbow-delimiters)
+  :hook (prog-mode . rainbow-delimiters-mode)
   :config
   (defun my-enable-rainbow-delimiters ()
     (unless (derived-mode-p 'emacs-lisp-mode)
@@ -1602,6 +1438,48 @@ the children of class at point."
         languagetool-console-command "~/.languagetool/languagetool-commandline.jar"
         languagetool-server-command "~/.languagetool/languagetool-server.jar"))
 
+(defun my-auctex-latexmk-rc-option ()
+  "Return a latexmk option for the nearest project-local .latexmkrc.
+Search upward from the AUCTeX master file directory so a project rc file
+above a nested TeX master is still honored."
+  (or (when-let* ((master-directory (TeX-master-directory))
+                  (project-directory
+                   (locate-dominating-file master-directory ".latexmkrc"))
+                  (rc-file
+                   (expand-file-name ".latexmkrc" project-directory)))
+        (format "-r %s " (shell-quote-argument rc-file)))
+      ""))
+
+(defun my-auctex-cont-latexmk-use-project-rc (command)
+  "Make continuous latexmk COMMAND honor the project-local rc file."
+  (let ((option (my-auctex-latexmk-rc-option)))
+    (if (string= option "")
+        command
+      (let ((without-pdf
+             (replace-regexp-in-string
+              "[[:space:]]+-pdf\\(?:[[:space:]]+\\|\\'\\)" " " command)))
+        (replace-regexp-in-string
+         "\\`latexmk\\(?:[[:space:]]+\\)?"
+         (concat "latexmk " option)
+         without-pdf t t)))))
+
+(defun my-auctex-latexmk-engine-option ()
+  "Return an AUCTeX engine option unless a project rc file controls it."
+  (if (not (string= (my-auctex-latexmk-rc-option) ""))
+      ""
+    (cond
+     ((and (eq TeX-engine 'default)
+           TeX-PDF-mode
+           auctex-latexmk-inherit-TeX-PDF-mode)
+      "-pdf ")
+     ((and (eq TeX-engine 'xetex)
+           TeX-PDF-mode
+           auctex-latexmk-inherit-TeX-PDF-mode)
+      "-pdf -pdflatex=xelatex ")
+     ((eq TeX-engine 'xetex) "-xelatex ")
+     ((eq TeX-engine 'luatex) "-lualatex ")
+     (t ""))))
+
 (use-package tex
   :ensure auctex
   :mode ("\\.tex\\'" . LaTeX-mode)
@@ -1654,7 +1532,13 @@ the children of class at point."
     :ensure t
     :config
     (auctex-latexmk-setup)
-    (setq auctex-latexmk-inherit-TeX-PDF-mode t))
+    (setq auctex-latexmk-inherit-TeX-PDF-mode t)
+    (add-to-list 'TeX-expand-list
+                 '("%(latexmkrc)" my-auctex-latexmk-rc-option))
+    (add-to-list 'TeX-expand-list
+                 '("%(latexmk-engine)" my-auctex-latexmk-engine-option))
+    (setf (nth 1 (assoc "LatexMk" TeX-command-list))
+          "latexmk %(latexmkrc)%(latexmk-engine)%S%(mode) %(file-line-error) %(extraopts) %t"))
 
   (use-package company-auctex
     :init
@@ -1670,7 +1554,10 @@ the children of class at point."
 
   (use-package auctex-cont-latexmk
     :bind (:map LaTeX-mode-map
-                ("C-c k" . auctex-cont-latexmk-toggle))))
+                ("C-c k" . auctex-cont-latexmk-toggle))
+    :config
+    (advice-add 'auctex-cont-latexmk--compilation-command :filter-return
+                #'my-auctex-cont-latexmk-use-project-rc)))
 
 ;; lua
 (use-package lua-mode

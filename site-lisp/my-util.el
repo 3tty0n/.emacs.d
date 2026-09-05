@@ -36,7 +36,7 @@
 (defun set-alpha (alpha-num)
   "set frame parameter 'alpha"
   (interactive "Alpha: ")
-  (set-frame-parameter nil 'alpha (cons alpha-num '(90))))
+  (set-frame-parameter nil 'alpha (cons alpha-num '(95))))
 
 ;; window size
 (defun set-frame-size-according-to-resolution ()
