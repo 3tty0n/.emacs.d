@@ -17,7 +17,6 @@
 (require 'init-ui)
 (require 'init-input)
 (require 'init-completion)
-(require 'init-prog)
 (require 'init-lang)
 (require 'init-org)
 (require 'init-mail)
