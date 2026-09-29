@@ -2,47 +2,6 @@
 
 (require 'init-core)
 
-;; html
-(use-package htmlize
-  :commands (htmlize-buffer htmlize-file htmlize-region))
-
-;; markdown
-(use-package markdown-mode
-  :mode (("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :bind (:map markdown-mode-map
-         ("C-c g" . grip-mode)
-         :map markdown-mode-command-map
-         ("g" . grip-mode))
-  :config
-  (setq markdown-command
-        "pandoc --from=markdown --to=html --standalone --mathjax --highlight-style=pygments"))
-
-;; Live Markdown/Org preview (`C-c g` or Markdown `C-c C-c g`)
-(use-package grip-mode
-  :ensure t
-  :commands grip-mode
-  :custom
-  (grip-command 'auto)
-  (grip-real-time-refresh t)
-  ;; Refresh on save only (avoids GitHub API rate limits while typing).
-  ;; Set to t for true as-you-type updates if you authenticate grip.
-  (grip-update-after-change nil)
-  :config
-  ;; Prefer in-Emacs webkit when available (opens on the right via display-buffer-alist).
-  (when (featurep 'xwidget-internal)
-    (setq grip-preview-in-webkit t)))
-
-;; csv
-(use-package csv-mode
-  :mode "\\.csv\\'")
-
-;; YAML
-(use-package yaml-mode
-  :mode "\\.ya?ml\\'"
-  :config
-  (use-package yaml-imenu))
-
 (use-package org
   :ensure t
   :defer t
@@ -109,73 +68,6 @@
 
 (use-package open-junk-file
   :commands open-junk-file)
-
-;; AI agent
-(use-package eat
-  :ensure t
-  :commands (eat eat-other-window)
-  :config
-  (setq eat-term-scrollback-size 400000)
-  (add-hook 'eat-mode-hook (lambda () (display-line-numbers-mode -1))))
-(use-package obsidian
-  :ensure t
-  :defer t
-  :commands (obsidian-capture
-             obsidian-follow-link-at-point
-             obsidian-jump
-             obsidian-insert-link
-             obsidian-backlink-jump)
-  :config
-  (global-obsidian-mode t)
-  (obsidian-backlinks-mode t)
-  :custom
-  ;; location of obsidian vault
-  (obsidian-directory "~/Obsidian")
-  ;; Default location for new notes from `obsidian-capture'
-  (obsidian-inbox-directory "Inbox")
-  ;; Useful if you're going to be using wiki links
-  (markdown-enable-wiki-links t)
-
-  ;; These bindings are only suggestions; it's okay to use other bindings
-  :bind (:map obsidian-mode-map
-              ;; Create note
-              ("C-c C-n" . obsidian-capture)
-              ;; If you prefer you can use `obsidian-insert-wikilink'
-              ("C-c C-l" . obsidian-insert-link)
-              ;; Open file pointed to by link at point
-              ("C-c C-o" . obsidian-follow-link-at-point)
-              ;; Open a different note from vault
-              ("C-c C-p" . obsidian-jump)
-              ;; Follow a backlink for the current file
-              ("C-c C-b" . obsidian-backlink-jump)))
-
-
-(use-package claude-code-ide
-  :load-path "site-lisp/claude-code-ide.el"
-  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
-  :config
-  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
-
-(use-package agent-shell
-  :ensure t
-  :defer t
-  :commands agent-shell
-  :config
-  (setq agent-shell-openai-authentication
-        (agent-shell-openai-make-authentication :login t))
-
-  (defun my-agent-shell-consult-reveal-fragment ()
-    "Expand a collapsed agent-shell fragment so a consult match is visible."
-    (when (derived-mode-p 'agent-shell-mode)
-      (when-let* ((state (get-text-property (point) 'agent-shell-ui-state))
-                  ((map-elt state :collapsed)))
-        (agent-shell-ui--toggle-fragment-at-point))))
-  (add-hook 'consult-after-jump-hook #'my-agent-shell-consult-reveal-fragment))
-
-
-
-;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
-;; ## end of OPAM user-setup addition for emacs / base ## keep this line
 
 (provide 'init-org)
 ;;; init-org.el ends here
