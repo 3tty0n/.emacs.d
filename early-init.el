@@ -1,19 +1,27 @@
 ;;; early-init.el --- Early startup tweaks -*- lexical-binding: t -*-
 
+;; Defer garbage collection while starting; restored in `emacs-startup-hook'.
+(setq gc-cons-threshold most-positive-fixnum
+      gc-cons-percentage 0.6
+      read-process-output-max (* 1024 1024))
+
+;; Prefer newer sources over stale .elc files (the config is byte-compiled by
+;; `make'), but never inside batch compilation.
+(setq load-prefer-newer t)
+
+;; Precomputed autoloads for installed packages; refresh with
+;; `make quickstart' (package.el also refreshes it on install/delete).
 (setq package-enable-at-startup t
-      package-quickstart nil
-      frame-inhibit-implied-resize t
+      package-quickstart t)
+
+(setq frame-inhibit-implied-resize t
       frame-resize-pixelwise t
       inhibit-startup-screen t
-      inhibit-startup-message t
+      inhibit-startup-echo-area-message user-login-name
       inhibit-compacting-font-caches t
-      read-process-output-max (* 1024 1024)
-      ;; Let JIT fontification wait briefly while the user is typing.
-      ;; This keeps redisplay/input responsive in large source buffers.
-      jit-lock-defer-time 0.2
-      jit-lock-stealth-time nil
-      gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.6)
+      initial-major-mode 'fundamental-mode
+      ;; Skip X resource lookups; nothing here relies on them.
+      inhibit-x-resources t)
 
 ;; Avoid UI chrome flash before init (not buffer display settings).
 (setq default-frame-alist
@@ -38,6 +46,7 @@
 
 (add-hook 'after-make-frame-functions #'my/yabai-realize-frame)
 
+;; File-name handlers (Tramp, jka-compr, ...) slow every `load' during init.
 (defvar my/file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
 
@@ -53,7 +62,8 @@
           (lambda ()
             (setq gc-cons-threshold (* 64 1024 1024)
                   gc-cons-percentage 0.1)
-            (message "Emacs loaded in %s." (emacs-init-time))))
+            (message "Emacs loaded in %s with %d GCs."
+                     (emacs-init-time) gcs-done)))
 
 (with-eval-after-load 'comp
   (setq native-comp-async-jobs-number 8
@@ -61,3 +71,4 @@
         native-comp-async-report-warnings-errors 'silent))
 
 (provide 'early-init)
+;;; early-init.el ends here

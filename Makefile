@@ -1,24 +1,26 @@
-EMACS := emacs
-USER_EMACS_DIR := ~/.emacs.d
-LDFLAGS := -L site-lisp/ -L elpa/
+EMACS ?= emacs
 
-ELISPS :=  early-init.el init.el my-init.el
-ELCS := $(ELISPS:.el=.elc)
-SUBDIRS := site-lisp/
+SRC := $(wildcard lisp/*.el) site-lisp/my-lazy-package.el
+ELC := $(SRC:.el=.elc)
 
-all: $(ELCS) $(SUBDIRS)
+.PHONY: all quickstart clean profile
 
-$(SUBDIRS):
-	$(MAKE) -C $@
+all: $(ELC) quickstart
 
-%.elc: %.el
-	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
+# Compile against the same load-path and use-package settings as init.el.
+%.elc: %.el build.el
+	$(EMACS) -Q --batch -l build.el -f batch-byte-compile $<
 
-setup:
-	./setup.sh
+# Recompile everything when the shared bootstrap changes.
+lisp/init-package.elc: site-lisp/my-lazy-package.elc
+$(filter-out lisp/init-package.elc,$(filter lisp/%.elc,$(ELC))): lisp/init-package.elc
+
+quickstart:
+	$(EMACS) -Q --batch --eval '(progn (setq package-quickstart t) (package-initialize) (package-quickstart-refresh))'
+
+# Startup time (in a real frame; batch mode skips GUI-only setup).
+profile:
+	$(EMACS) --eval '(run-with-timer 3 nil (lambda () (message "init: %s" (emacs-init-time)) (kill-emacs)))' 2>&1 | grep -a "init:" || true
 
 clean:
-	$(RM) $(ELCS) session.*
-	$(MAKE) -C $(SUBDIRS) clean
-
-.PHONY: all setup clean $(SUBDIRS)
+	$(RM) $(ELC) package-quickstart.elc

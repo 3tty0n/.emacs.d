@@ -182,6 +182,19 @@ NAME and ARGS have the same meaning as in `use-package-ensure-elpa'."
            command file package (symbol-function command)))))
     result))
 
+;; `use-package' evaluates its ensure function at macro-expansion time when
+;; byte-compiling and leaves nothing in the compiled code.  Keep the runtime
+;; call so the missing-package registry is still populated at startup.
+(defun my-lazy-package--keep-runtime-ensure (original name keyword ensure rest state)
+  "Wrap `use-package-handler/:ensure' (ORIGINAL) to survive byte-compilation."
+  (let ((body (funcall original name keyword ensure rest state)))
+    (if (and (bound-and-true-p byte-compile-current-file)
+             (eq use-package-ensure-function #'my-lazy-package-ensure)
+             (not (plist-member rest :vc))
+             ensure)
+        (cons `(my-lazy-package-ensure ',name ',ensure ',state) body)
+      body)))
+
 (defun my-lazy-package--restore-autoloads ()
   "Restore command autoloads still wrapped by this module."
   (maphash
@@ -205,12 +218,16 @@ NAME and ARGS have the same meaning as in `use-package-ensure-elpa'."
         (add-hook 'emacs-startup-hook #'my-lazy-package--finish-startup)
         (advice-add 'require :around #'my-lazy-package--require)
         (advice-add 'load :around #'my-lazy-package--load)
-        (advice-add 'autoload :around #'my-lazy-package--autoload))
+        (advice-add 'autoload :around #'my-lazy-package--autoload)
+        (advice-add 'use-package-handler/:ensure :around
+                    #'my-lazy-package--keep-runtime-ensure))
     (when my-lazy-package--active-p
       (remove-hook 'emacs-startup-hook #'my-lazy-package--finish-startup)
       (advice-remove 'require #'my-lazy-package--require)
       (advice-remove 'load #'my-lazy-package--load)
       (advice-remove 'autoload #'my-lazy-package--autoload)
+      (advice-remove 'use-package-handler/:ensure
+                     #'my-lazy-package--keep-runtime-ensure)
       (my-lazy-package--restore-autoloads)
       (when (eq use-package-ensure-function #'my-lazy-package-ensure)
         (setq use-package-ensure-function
