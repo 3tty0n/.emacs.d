@@ -200,9 +200,10 @@ replaced by spaces."
              '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
 
 (eval-and-compile
-  ;; Must be set before use-package is loaded.  Minimal expansion keeps the
-  ;; byte-compiled code small; the full expansion is only useful when debugging.
-  (setq use-package-expand-minimally (bound-and-true-p byte-compile-current-file)
+  ;; Must be set before use-package is loaded.  Keep the full expansion even
+  ;; when byte-compiling: minimal expansion drops the error handling around
+  ;; `require', so one missing package would abort the rest of the config.
+  (setq use-package-expand-minimally nil
         use-package-enable-imenu-support t))
 (require 'use-package)
 

@@ -8,7 +8,7 @@
 (add-to-list 'load-path
              (expand-file-name "site-lisp" (file-name-directory
                                             (or load-file-name buffer-file-name))))
-(setq use-package-expand-minimally t
+(setq use-package-expand-minimally nil
       use-package-enable-imenu-support t)
 (require 'use-package)
 ;; Enables lazy (non-installing) ensure.
