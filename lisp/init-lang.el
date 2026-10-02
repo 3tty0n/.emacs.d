@@ -15,6 +15,17 @@
         eshell-destroy-buffer-when-process-dies t)
   (add-hook 'eshell-mode-hook (lambda () (display-line-numbers-mode -1))))
 
+(use-package eshell-prompt-extras
+  :ensure t
+  :after (eshell)
+  :defer t
+  :disabled
+  :config
+  (with-eval-after-load 'esh-opt
+    (autoload 'epe-theme-lambda "eshell-prompt-extras")
+    (setq eshell-highlight-prompt nil
+          eshell-prompt-function 'epe-theme-lambda)))
+
 (use-package eshell-git-prompt
   :after eshell
   :config
@@ -187,6 +198,11 @@ the children of class at point."
       :new-connection (lsp-stdio-connection '("/usr/bin/jdtls"))
       :activation-fn (lsp-activate-on "java")
       :server-id 'jdtls-system))
+  (use-package lsp-java
+    ;; The system jdtls client registered above is used instead.  Keep this
+    ;; optional package from producing a startup error when it is not installed.
+    :disabled
+    :ensure t)
   (use-package lsp-jedi
     :ensure t)
   (use-package ccls
@@ -310,6 +326,42 @@ the children of class at point."
   :mode ("\\.sml\\'" "\\.sig\\'"))
 
 ;; ocaml
+;; ocaml
+(use-package tuareg
+  :disabled
+  :init
+  (add-hook 'tuareg-mode-hook #'merlin-mode)
+  (add-hook 'tuareg-mode-hook #'utop-minor-mode)
+  (add-to-list 'auto-mode-alist '("\\.ml[iylp]?\\'" . tuareg-mode))
+  (add-to-list 'auto-mode-alist '("\\`dune\\'" . dune-mode))
+  :config
+  (setq tuareg-match-patterns-aligned t
+        tuareg-highlight-all-operators t))
+
+(use-package ocp-indent
+  :disabled
+  :after tuareg
+  :config
+  (add-hook 'tuareg-mode-hook #'ocp-setup-indent))
+
+(use-package merlin
+  :disabled ;; enable when lsp-ocaml is disabled
+  :after tuareg
+  :config
+  (setq merlin-error-after-save nil)
+  (flycheck-ocaml-setup)
+  (use-package merlin-company
+    :config
+    (add-to-list 'company-backends #'merlin-company-backend)))
+
+(use-package merlin-eldoc
+  :disabled
+  :after merlin)
+
+(use-package ocamlformat
+  :after tuareg)
+
+
 (use-package dune
   :mode (("\\`dune\\'" . dune-mode)
          ("\\`dune-project\\'" . dune-mode)))
