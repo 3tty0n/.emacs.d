@@ -1929,6 +1929,7 @@ above a nested TeX master is still honored."
 
 (use-package my-mu4e
   :load-path "~/.mu4e.d"
+  :no-require t                         ; loaded by `my-load-mail-and-calendar'
   :defer t)
 
 (use-package my-calendar
