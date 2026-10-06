@@ -1928,22 +1928,17 @@ above a nested TeX master is still honored."
 ;; from an idle timer rather than blocking startup.
 
 (use-package my-mu4e
-  :load-path "~/.mu4e.d"
-  :no-require t                         ; loaded by `my-load-mail-and-calendar'
-  :defer t)
+  :load-path "~/.mu4e.d")
 
 (use-package my-calendar
-  :load-path "~/.my-calendar.d"
-  :defer t)
+  :load-path "~/.my-calendar.d")
 
 (use-package excorporate-oauth2
-  :load-path "site-lisp/excorporate-oauth2"
-  :defer t)
+  :load-path "site-lisp/excorporate-oauth2")
 
 (use-package calfw-excorporate
   :load-path "site-lisp/calfw-excorporate"
-  :after excorporate-oauth2
-  :defer t)
+  :after excorporate-oauth2)
 
 (defun my-load-mail-and-calendar ()
   "Load the mail and calendar configuration."
