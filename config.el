@@ -1581,6 +1581,11 @@ above a nested TeX master is still honored."
         reftex-plug-into-AUCTeX t)
   (setq-default TeX-command-extra-options "-shell-escape")
 
+  ;; C-c C-c offers "View" (PDF Tools) and "View (xdg-open)" (external viewer).
+  (add-to-list 'TeX-command-list
+               '("View (xdg-open)" "xdg-open %o" TeX-run-discard-or-function t t
+                 :help "Open the PDF with the system viewer"))
+
   (TeX-source-correlate-mode 1)
 
   (keymap-set TeX-mode-map "C-c C-g" #'my-synctex-forward-search)
