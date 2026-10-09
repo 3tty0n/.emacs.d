@@ -7,6 +7,13 @@
 ;; Prevent `use-package' declarations from contacting package archives during
 ;; startup.  Missing packages are remembered and installed after startup only
 ;; when their feature, file, or interactive autoload is actually requested.
+;;
+;; Use the documented `use-package-ensure-function' extension point and delegate
+;; installation (including :pin and archive refresh) to `use-package-ensure-elpa'.
+;; :defer only delays loading, not :ensure.  The :ensure handler needs a small
+;; extension because the standard handler omits runtime ensures when compiling.
+;; Command wrappers are necessary: the evaluator's C autoload path does not run
+;; Lisp advice on `load' or `autoload-do-load'.  Keep the original autoload intact.
 
 ;;; Code:
 
@@ -144,7 +151,7 @@ NAME and ARGS have the same meaning as in `use-package-ensure-elpa'."
   "Return a wrapper installing PACKAGE before COMMAND loads FILE."
   (lambda (&rest args)
     (interactive)
-    (let ((interactive-p (called-interactively-p 'interactive)))
+    (let ((interactive-p (called-interactively-p 'any)))
       (remhash command my-lazy-package--wrapped-autoloads)
       (fset command original-autoload)
       (cond
@@ -186,14 +193,17 @@ NAME and ARGS have the same meaning as in `use-package-ensure-elpa'."
 ;; byte-compiling and leaves nothing in the compiled code.  Keep the runtime
 ;; call so the missing-package registry is still populated at startup.
 (defun my-lazy-package--keep-runtime-ensure (original name keyword ensure rest state)
-  "Wrap `use-package-handler/:ensure' (ORIGINAL) to survive byte-compilation."
-  (let ((body (funcall original name keyword ensure rest state)))
-    (if (and (bound-and-true-p byte-compile-current-file)
-             (eq use-package-ensure-function #'my-lazy-package-ensure)
-             (not (plist-member rest :vc))
-             ensure)
-        (cons `(my-lazy-package-ensure ',name ',ensure ',state) body)
-      body)))
+  "Extend ORIGINAL with a runtime ensure when compiling lazy declarations."
+  (if (and (bound-and-true-p byte-compile-current-file)
+           (eq use-package-ensure-function #'my-lazy-package-ensure)
+           (not (plist-member rest :vc))
+           ensure)
+      ;; Use the standard keyword processor, but don't evaluate :ensure at
+      ;; compile time.  As in the standard source expansion, capture the chosen
+      ;; ensure function rather than whichever function is set later at runtime.
+      (cons `(my-lazy-package-ensure ',name ',ensure ',state)
+            (use-package-process-keywords name rest state))
+    (funcall original name keyword ensure rest state)))
 
 (defun my-lazy-package--restore-autoloads ()
   "Restore command autoloads still wrapped by this module."

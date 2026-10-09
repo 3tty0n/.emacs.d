@@ -1,8 +1,8 @@
 EMACS ?= emacs
 
-ELC := config.elc site-lisp/my-lazy-package.elc
+ELC := init.elc config.elc site-lisp/my-lazy-package.elc
 
-.PHONY: all quickstart clean profile
+.PHONY: all quickstart recompile-packages clean profile
 
 all: $(ELC) quickstart
 
@@ -14,6 +14,11 @@ config.elc: site-lisp/my-lazy-package.elc
 
 quickstart:
 	$(EMACS) -Q --batch --eval '(progn (setq package-quickstart t) (package-initialize) (package-quickstart-refresh))'
+
+# Rebuild installed packages after upgrading Emacs, then refresh autoloads.
+recompile-packages:
+	$(EMACS) -Q --batch --eval '(progn (require (quote package)) (package-initialize) (package-recompile-all))'
+	$(MAKE) quickstart
 
 # Startup time (in a real frame; batch mode skips GUI-only setup).
 profile:

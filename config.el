@@ -204,10 +204,12 @@ replaced by spaces."
   ;; when byte-compiling: minimal expansion drops the error handling around
   ;; `require', so one missing package would abort the rest of the config.
   (setq use-package-expand-minimally nil
-        use-package-enable-imenu-support t))
+        use-package-enable-imenu-support t
+        use-package-always-ensure t))
 (require 'use-package)
 
-;; Never contact package archives during startup; install on first use.
+;; Never contact package archives during startup.  Install missing packages
+;; only when they are first requested after startup, including compiled config.
 (require 'my-lazy-package)
 (my-lazy-package-mode 1)
 
@@ -1828,6 +1830,7 @@ above a nested TeX master is still honored."
 
 
 (use-package claude-code-ide
+  :ensure nil
   :load-path "site-lisp/claude-code-ide.el"
   :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
@@ -1928,15 +1931,19 @@ above a nested TeX master is still honored."
 ;; from an idle timer rather than blocking startup.
 
 (use-package my-mu4e
+  :ensure nil
   :load-path "~/.mu4e.d")
 
 (use-package my-calendar
+  :ensure nil
   :load-path "~/.my-calendar.d")
 
 (use-package excorporate-oauth2
+  :ensure nil
   :load-path "site-lisp/excorporate-oauth2")
 
 (use-package calfw-excorporate
+  :ensure nil
   :load-path "site-lisp/calfw-excorporate"
   :after excorporate-oauth2)
 

@@ -9,9 +9,11 @@
              (expand-file-name "site-lisp" (file-name-directory
                                             (or load-file-name buffer-file-name))))
 (setq use-package-expand-minimally nil
-      use-package-enable-imenu-support t)
+      use-package-enable-imenu-support t
+      use-package-always-ensure t)
 (require 'use-package)
-;; Enables lazy (non-installing) ensure.
+;; Record dependencies without installing them during compilation.  Compiled
+;; declarations call the runtime ensure function selected by config.el.
 (require 'my-lazy-package)
 (my-lazy-package-mode 1)
 
