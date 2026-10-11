@@ -394,8 +394,7 @@ replaced by spaces."
     ;; Company remains available for explicit use, but does not start an
     ;; expensive completion search after every pause in a large buffer.
     (setq-local company-idle-delay nil
-                company-backends '(company-capf))
-    (setq-local jit-lock-defer-time 0.0)))
+                company-backends '(company-capf))))
 
 (add-hook 'prog-mode-hook #'my-large-buffer-performance-setup)
 (add-hook 'conf-mode-hook #'my-large-buffer-performance-setup)
@@ -450,7 +449,11 @@ replaced by spaces."
 (when (fboundp 'repeat-mode)
   (repeat-mode 1))
 
-(setq redisplay-skip-fontification-on-input t
+;; Fontify immediately: `jit-lock-defer-time' must stay nil so syntax
+;; highlighting is not postponed to idle time, and fontification must not be
+;; skipped just because input is pending.
+(setq jit-lock-defer-time nil
+      redisplay-skip-fontification-on-input nil
       fast-but-imprecise-scrolling t
       bidi-inhibit-bpa t)
 (setq-default bidi-paragraph-direction 'left-to-right)
