@@ -1566,6 +1566,11 @@ above a nested TeX master is still honored."
   :mode ("\\.tex\\'" . LaTeX-mode)
   :config
   (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
+  (add-hook 'LaTeX-mode-hook #'flycheck-mode)
+  (add-hook 'LaTeX-mode-hook
+            (lambda ()
+              (setq-local flycheck-check-syntax-automatically
+                          '(save idle-change new-line mode-enabled))))
   (add-hook 'LaTeX-mode-hook #'flyspell-mode)
   (add-hook 'LaTeX-mode-hook #'turn-on-auto-fill)
   (add-hook 'LaTeX-mode-hook #'display-fill-column-indicator-mode)
