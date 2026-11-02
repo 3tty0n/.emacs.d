@@ -66,8 +66,12 @@
                      (emacs-init-time) gcs-done)))
 
 (with-eval-after-load 'comp
+  ;; Keep this at 2.  At speed 3 the native compiler turns intra-file calls
+  ;; into direct calls, so mu4e's `cl-letf' override of
+  ;; `message-pop-to-buffer' in `message-reply' no longer takes effect and
+  ;; replies are created without the quoted original.
   (setq native-comp-async-jobs-number 8
-        native-comp-speed 3
+        native-comp-speed 2
         native-comp-async-report-warnings-errors 'silent))
 
 (provide 'early-init)
